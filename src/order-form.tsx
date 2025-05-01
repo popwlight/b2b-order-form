@@ -82,7 +82,7 @@ export default function B2BOrderForm() {
         className="border p-2 mb-4 w-full"
       />
       {products.map((product) => (
-        <div key={product.style} style={ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }>
+        <div key={product.style} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
           <h2><strong>{product.style} - {product.name} (${product.rrp})</strong></h2>
           {product.colors.map((color) => (
             <div key={color}>
