@@ -30,7 +30,16 @@ export default function B2BOrderForm() {
       .then((rows) => {
         const map: { [style: string]: any } = {};
         for (const row of rows) {
-          const { Style, Name, Size, Width, Color, "Wholesale Price": wholesale, RRP } = row;
+          const {
+  Style,
+  Desc: Name,
+  Size,
+  Width,
+  Colours: Color,
+  Wholesale: wholesale,
+  RRP
+} = row;
+
           if (!Style || !Name || !Size || !Color || !wholesale || !RRP) continue;
           if (!map[Style]) {
             map[Style] = {
