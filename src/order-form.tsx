@@ -1,4 +1,3 @@
-// order-form.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -13,162 +12,154 @@ interface Product {
   Collection?: string;
 }
 
-interface GroupedProduct {
-  collection: string;
-  items: Product[];
-}
+const expandSizes = (sizeStr: string): string[] => {
+  if (sizeStr.includes(",")) return sizeStr.split(",").map((s) => s.trim());
+  if (sizeStr.includes(" - ")) {
+    const [start, end] = sizeStr.split(" - ").map((s) => s.trim());
+    const isChild = /[a-zA-Z]/.test(start);
+    const list: string[] = [];
 
-const parseRange = (range: string): string[] => {
-  if (!range) return [];
-  const sizes: string[] = [];
-  const parts = range.split(",").map((p) => p.trim());
-  parts.forEach((part) => {
-    if (part.includes("-")) {
-      const [start, end] = part.split("-").map((x) => x.trim());
-      const startNum = parseFloat(start);
-      const endNum = parseFloat(end);
-      if (!isNaN(startNum) && !isNaN(endNum)) {
-        for (let i = startNum; i <= endNum; i += 0.5) {
-          sizes.push(i % 1 === 0 ? `${i}` : `${i}`);
-        }
-      } else {
-        sizes.push(part);
+    const parse = (v: string) => (isNaN(Number(v)) ? v : parseFloat(v));
+    const from = parse(start);
+    const to = parse(end);
+    const current = parseFloat(from);
+
+    if (typeof current === "number") {
+      let val = current;
+      while (val <= to) {
+        list.push(val % 1 === 0 ? val.toFixed(0) : val.toFixed(1));
+        val += 0.5;
       }
-    } else {
-      sizes.push(part);
+      return list.map((s) => {
+        const num = parseFloat(s);
+        if (num < 10) return `0${(num * 10).toFixed(0)}`;
+        return `${(num * 10).toFixed(0)}`;
+      });
     }
-  });
-  return sizes;
-};
-
-const parseColours = (colours: string): string[] => {
-  return colours?.split(",").map((c) => c.trim()) || [];
+    return [sizeStr];
+  }
+  return [sizeStr];
 };
 
 export default function OrderForm() {
-  const [data, setData] = useState<Product[]>([]);
-  const [grouped, setGrouped] = useState<GroupedProduct[]>([]);
-  const [customerId, setCustomerId] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [grouped, setGrouped] = useState<Record<string, Product[]>>({});
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [customerId, setCustomerId] = useState<string>("");
 
   useEffect(() => {
     axios
-      .get(
-        "https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1"
-      )
+      .get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
       .then((res) => {
-        const raw: Product[] = res.data;
-        const result: GroupedProduct[] = [];
-        let currentCollection = "";
-        let currentItems: Product[] = [];
-
-        raw.forEach((row) => {
-          const isCollectionRow = Object.values(row).filter(Boolean).length === 1 && row.Collection;
-          if (isCollectionRow) {
-            if (currentItems.length > 0) {
-              result.push({ collection: currentCollection, items: currentItems });
-            }
-            currentCollection = row.Collection;
-            currentItems = [];
+        const data = res.data as Product[];
+        const cleaned = data.filter((d) => d.Style || d.Collection);
+        const grouped: Record<string, Product[]> = {};
+        let currentGroup = "";
+        cleaned.forEach((row) => {
+          if (row.Collection && !row.Style) {
+            currentGroup = row.Collection.trim();
+            grouped[currentGroup] = [];
           } else if (row.Style) {
-            currentItems.push({ ...row, Collection: currentCollection });
+            grouped[currentGroup] = grouped[currentGroup] || [];
+            grouped[currentGroup].push(row);
           }
         });
-
-        if (currentItems.length > 0) {
-          result.push({ collection: currentCollection, items: currentItems });
-        }
-
-        setData(raw);
-        setGrouped(result);
+        setGrouped(grouped);
+        setProducts(cleaned);
       });
   }, []);
 
   const handleChange = (sku: string, value: string) => {
-    const num = parseInt(value, 10);
-    if (!isNaN(num)) {
-      setQuantities((prev) => ({ ...prev, [sku]: num }));
-    } else {
-      const copy = { ...quantities };
-      delete copy[sku];
-      setQuantities(copy);
+    const qty = parseInt(value);
+    if (!isNaN(qty)) {
+      setQuantities({ ...quantities, [sku]: qty });
     }
   };
 
   const totalQty = Object.values(quantities).reduce((a, b) => a + b, 0);
+
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    const product = data.find((p) => `${p.Style}-${p.Width}-${p.Colours}-${p.Size}`.includes(sku));
-    const price = parseFloat(product?.Wholesale || "0");
+    const product = products.find((p) => sku.startsWith(p.Style));
+    if (!product || !product.Wholesale) return sum;
+    const price = parseFloat(product.Wholesale);
     return sum + price * qty;
   }, 0);
 
+  const generateSKU = (style: string, width: string, color: string, size: string) => {
+    if (size.toLowerCase() === "os" || size.toLowerCase() === "one") return `${style}-${color}-ONE`;
+    if (/^[0-9]+(\.[0-9])?$/.test(size)) return `${style}-${color}-${size.padStart(3, "0")}`;
+    return `${style}-${color}-${size}`;
+  };
+
   return (
-    <div className="p-4 text-sm font-sans">
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-2">B2B Order Form</h1>
       {!customerId ? (
-        <div className="max-w-md mx-auto my-10">
-          <label className="block mb-2 font-bold">Please enter your Customer ID:</label>
+        <div>
+          <label className="font-semibold">Enter Customer ID:</label>
           <input
-            className="border px-4 py-2 w-full border-gray-300 rounded"
+            type="text"
+            className="border ml-2 p-1"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
           />
         </div>
       ) : (
         <>
-          <h1 className="text-2xl font-bold mb-4">B2B Order Form</h1>
-          <p className="mb-2">Customer ID: {customerId}</p>
-          <p className="mb-4 font-medium">Total Qty: {totalQty} | Total $: {totalAmount.toFixed(2)}</p>
-          {grouped.map(({ collection, items }) => (
-            <details key={collection} className="mb-6" open={false}>
-              <summary className="text-xl font-bold cursor-pointer bg-gray-100 p-2 mb-2">{collection}</summary>
-              {items.map((product, index) => {
-                const sizes = parseRange(product.Size);
-                const widths = parseColours(product.Width);
-                const colours = parseColours(product.Colours);
-
-                if (!sizes.length || !colours.length) return null;
+          {Object.entries(grouped).map(([collection, items], index) => (
+            <details key={collection} className="mb-4" open={false}>
+              <summary className="text-lg font-bold cursor-pointer">
+                {index + 1}. {collection}
+              </summary>
+              {items.map((product) => {
+                const shortStyle = product.Style.replace(/^S0+|^A0+|^G0+|^F0+|^B0+/i, "");
+                const widths = product.Width?.split(",").map((w) => w.trim()) || [""];
+                const colors = product.Colours?.split(",").map((c) => c.trim()) || [];
+                const sizes = expandSizes(product.Size);
 
                 return (
-                  <div key={index} className="border border-gray-300 rounded mb-4 p-3">
-                    <h2 className="font-bold mb-1">
-                      {product.Style.replace(/^[A-Z0]+/, "")} - {product.Desc} (${product.RRP})
-                      <span className="ml-2 text-sm text-gray-500">Wholesale ${product.Wholesale}</span>
+                  <div key={product.Style} className="border p-2 my-2">
+                    <h2 className="font-semibold mb-1">
+                      {shortStyle} - {product.Desc} (${product.Wholesale} / ${product.RRP})
                     </h2>
-                    {widths.map((width) => (
-                      <div key={width} className="mb-2">
-                        <div className="font-semibold">Width: {width || "-"}</div>
-                        <div className="overflow-x-auto">
-                          <table className="border-collapse border w-full text-center text-xs">
-                            <thead>
-                              <tr>
-                                {sizes.map((size) => (
-                                  <th key={size} className="border px-2 py-1">{size}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {colours.map((color) => (
-                                <tr key={color}>
-                                  {sizes.map((size) => {
-                                    const sku = `${product.Style}-${width}-${color}-${size}`;
-                                    return (
-                                      <td key={sku} className="border px-1 py-1">
-                                        <input
-                                          className="w-12 px-1 py-0.5 border border-gray-300 rounded text-center"
-                                          type="number"
-                                          min={0}
-                                          max={99}
-                                          value={quantities[sku] || ""}
-                                          onChange={(e) => handleChange(sku, e.target.value)}
-                                        />
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                    {colors.map((color) => (
+                      <div key={color} className="mb-2">
+                        <div className="font-semibold">Color: {color}</div>
+                        {widths.map((width) => (
+                          <div key={width}>
+                            <div>Width: {width || "-"}</div>
+                            <div className="overflow-x-auto">
+                              <table className="table-auto border mt-1">
+                                <thead>
+                                  <tr>
+                                    {sizes.map((size) => (
+                                      <th key={size} className="px-2 border text-sm">
+                                        {size}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr>
+                                    {sizes.map((size) => {
+                                      const sku = generateSKU(product.Style, width, color, size);
+                                      return (
+                                        <td key={sku} className="border">
+                                          <input
+                                            type="number"
+                                            className="w-16 p-1 text-sm border"
+                                            value={quantities[sku] || ""}
+                                            onChange={(e) => handleChange(sku, e.target.value)}
+                                          />
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
@@ -176,6 +167,9 @@ export default function OrderForm() {
               })}
             </details>
           ))}
+          <div className="mt-4 font-bold">
+            Total Quantity: {totalQty} | Total Wholesale Amount: ${totalAmount.toFixed(2)}
+          </div>
         </>
       )}
     </div>
