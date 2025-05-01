@@ -90,7 +90,7 @@ export default function B2BOrderForm() {
               {(product.widths.length ? product.widths : [""]).map((width) => (
                 <div key={width}>
                   <div>Width: {width || "-"}</div>
-                  <div style={ display: "flex", flexWrap: "wrap", gap: "0.5rem" }>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {product.sizes.map((size) => {
                       const sku = generateSKU(product.style, width, color, size);
                       return (
