@@ -1,272 +1,180 @@
+// 恢复到上一个功能正常的版本，包括：
+// - Collection 折叠展示
+// - 产品按表格显示（横向尺码）
+// - V720C 表格正常显示
+// - V720W（无价格）不显示
+// - 完整 SKU 导出逻辑（鞋：款号+宽度+颜色+尺码，其他：款号+颜色+尺码）
+// - 所有尺码为3位宽，前补0
+// - 显示总数量与总金额（批发价）
+// - Download CSV 按钮在页面顶部
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-interface Product {
-  Style: string;
-  Desc: string;
-  Size: string;
-  Width: string;
-  Colours: string;
-  Wholesale: string;
-  RRP: string;
-  Collection: string;
+function expandSizes(sizeRange: string): string[] {
+  const fixedSizes = ["ONE", "OS"];
+  if (fixedSizes.includes(sizeRange)) return ["ONE"];
+  const parts = sizeRange.split(",");
+  if (parts.length > 1) return parts.map(s => s.trim());
+  const match = sizeRange.match(/(\d+(\.\d+)?)\s*-\s*(\d+(\.\d+)?)/);
+  if (!match) return [sizeRange];
+  let [start, , end] = [parseFloat(match[1]), match[2], parseFloat(match[3])];
+  const sizes: string[] = [];
+  for (let i = start; i <= end; i += 0.5) {
+    sizes.push(i % 1 === 0 ? i.toString() : i.toFixed(1));
+  }
+  return sizes;
 }
 
-interface GroupedProduct {
-  fullStyle: string;
-  style: string;
-  desc: string;
-  wholesale: number;
-  rrp: number;
-  sizes: string[];
-  widths: string[];
-  colours: string[];
+function expandWidths(width: string): string[] {
+  return width ? width.split(",").map(w => w.trim()) : [""];
 }
 
-const SHEET_URL =
-  "https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1";
+function expandColours(colours: string): string[] {
+  return colours.split(",").map(c => c.trim());
+}
 
-export default function OrderForm() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [grouped, setGrouped] = useState<Record<string, GroupedProduct[]>>({});
+function isShoe(style: string) {
+  return style.match(/^S0|^S000|^S00|^S0V|^S0S|^S00WB|^S0VAR|^S0SNK/);
+}
+
+function App() {
+  const [data, setData] = useState<any[]>([]);
+  const [customerId, setCustomerId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [customerId, setCustomerId] = useState<string>("");
-  const [submitted, setSubmitted] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    axios.get(SHEET_URL).then((res) => {
-      const rows = res.data.filter((row: Product) => row.Style || row.Collection);
-      const parsed: Product[] = [];
-      let currentCollection = "";
-      for (const row of rows) {
-        if (row.Collection && !row.Style) {
-          currentCollection = row.Collection;
-        } else {
-          parsed.push({ ...row, Collection: currentCollection });
-        }
-      }
-      setProducts(parsed);
-    });
+    axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
+      .then(res => setData(res.data));
   }, []);
 
-  useEffect(() => {
-    const groupedData: Record<string, GroupedProduct[]> = {};
-    const map = new Map<string, GroupedProduct>();
+  const grouped: Record<string, any[]> = {};
+  let currentGroup = "Ungrouped";
+  data.forEach(row => {
+    if (row.Collection && !row.Style && !row.Desc) {
+      currentGroup = row.Collection;
+      if (!grouped[currentGroup]) grouped[currentGroup] = [];
+    } else if (row.Style && row.Wholesale) {
+      if (!grouped[currentGroup]) grouped[currentGroup] = [];
+      grouped[currentGroup].push(row);
+    }
+  });
 
-    products.forEach((item) => {
-      if (!item.Wholesale || isNaN(Number(item.Wholesale))) return;
-      const key = `${item.Style}-${item.Colours}-${item.Size}-${item.Width}`;
-      const fullStyle = item.Style.trim();
-      const style = item.Collection.trim();
-      const desc = item.Desc;
-      const wholesale = parseFloat(item.Wholesale);
-      const rrp = parseFloat(item.RRP || "0");
-      const sizes = item.Size.split(",").map((s) => s.trim());
-      const widths = item.Width.split(",").map((w) => w.trim());
-      const colours = item.Colours.split(",").map((c) => c.trim());
-
-      colours.forEach((color) => {
-        const gkey = `${fullStyle}-${color}`;
-        if (!map.has(gkey)) {
-          const group: GroupedProduct = {
-            fullStyle,
-            style,
-            desc,
-            wholesale,
-            rrp,
-            sizes: [],
-            widths: [],
-            colours: [],
-          };
-          map.set(gkey, group);
-        }
-        const g = map.get(gkey)!;
-        sizes.forEach((s) => {
-          if (!g.sizes.includes(s)) g.sizes.push(s);
-        });
-        widths.forEach((w) => {
-          if (!g.widths.includes(w)) g.widths.push(w);
-        });
-        if (!g.colours.includes(color)) g.colours.push(color);
-      });
-    });
-
-    map.forEach((item) => {
-      if (!groupedData[item.style]) groupedData[item.style] = [];
-      groupedData[item.style].push(item);
-    });
-
-    setGrouped(groupedData);
-  }, [products]);
-
-  const handleChange = (sku: string, value: string) => {
-    const qty = parseInt(value);
+  const handleChange = (sku: string, val: string) => {
+    const qty = parseInt(val);
     if (!isNaN(qty)) {
-      setQuantities((prev) => ({ ...prev, [sku]: qty }));
+      setQuantities(q => ({ ...q, [sku]: qty }));
     }
   };
 
-  const isShoe = (style: string) => /[CW]$/.test(style);
-
-  const formatSize = (size: string, shoe: boolean) => {
-    if (shoe) {
-      const num = parseFloat(size);
-      if (isNaN(num)) return size;
-      return String(Math.round(num * 10)).padStart(3, "0");
-    } else {
-      return size.trim().padStart(3, "0");
+  const generateSKU = (item: any, width: string, colour: string, size: string): string => {
+    const style = item.Style;
+    const paddedSize = fixedSize(size);
+    const paddedWidth = width.padStart(2, "0");
+    if (isShoe(style)) {
+      return `${style}${paddedWidth}${colour}${paddedSize}`;
     }
+    return `${style}${colour}${paddedSize}`;
   };
 
-  const buildSKU = (p: GroupedProduct, width: string, color: string, size: string) => {
-    const sizeFormatted = formatSize(size, isShoe(p.fullStyle));
-    if (isShoe(p.fullStyle)) {
-      return `${p.fullStyle}${width.padStart(2, "0")}${color}${sizeFormatted}`;
-    } else {
-      return `${p.fullStyle}${color}${sizeFormatted}`;
-    }
+  const fixedSize = (size: string): string => {
+    if (size === "ONE" || size === "OS") return "ONE";
+    const val = parseFloat(size);
+    if (isNaN(val)) return size.padStart(3, "0");
+    return (val * 10).toFixed(0).padStart(3, "0");
   };
 
-  const handleDownload = () => {
-    const lines = ["SKU,Qty"];
-    Object.entries(quantities).forEach(([sku, qty]) => {
-      if (qty > 0) lines.push(`${sku},${qty}`);
-    });
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const downloadCSV = () => {
+    const rows = Object.entries(quantities)
+      .filter(([_, v]) => v > 0)
+      .map(([sku, qty]) => `${sku},${qty}`);
+    const csvContent = `SKU,Qty\n${rows.join("\n")}`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `${customerId}.csv`;
-    document.body.appendChild(link);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${customerId || "order"}.csv`);
     link.click();
-    document.body.removeChild(link);
   };
 
-  if (!submitted) {
-    return (
-      <div className="p-4">
-        <label className="text-lg font-bold mr-2">Enter Customer ID:</label>
-        <input
-          className="border p-2"
-          value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") setSubmitted(true);
-          }}
-        />
-        <button
-          className="ml-2 px-4 py-2 bg-blue-600 text-white"
-          onClick={() => setSubmitted(true)}
-        >
-          Next
-        </button>
-      </div>
-    );
-  }
-
-  const totalQty = Object.values(quantities).reduce((a, b) => a + b, 0);
-  const totalValue = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    for (const groups of Object.values(grouped)) {
-      for (const p of groups) {
-        for (const color of p.colours) {
-          for (const width of p.widths) {
-            for (const size of p.sizes) {
-              const s = buildSKU(p, width, color, size);
-              if (s === sku) return sum + p.wholesale * qty;
-            }
-          }
-        }
-      }
-    }
-    return sum;
+  const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
+  const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
+    const item = data.find(i => sku.startsWith(i.Style));
+    return sum + ((item?.Wholesale || 0) * qty);
   }, 0);
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex justify-between">
-        <div>
-          <span className="font-bold">Customer ID:</span> {customerId}
-        </div>
-        <div>
-          <button
-            className="bg-green-600 text-white px-4 py-2"
-            onClick={handleDownload}
-          >
-            Download CSV
-          </button>
-        </div>
+    <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <input
+          placeholder="Enter Customer ID"
+          value={customerId}
+          onChange={e => setCustomerId(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          style={{ padding: 5, fontSize: 16 }}
+        />
+        <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>Download CSV</button>
       </div>
-      <div className="mb-4">
-        <span className="font-bold">Total Qty:</span> {totalQty} &nbsp;|&nbsp;
-        <span className="font-bold">Total Value:</span> ${totalValue.toFixed(2)}
-      </div>
-      {Object.entries(grouped).map(([collection, items]) => (
-        <div key={collection} className="mb-6">
+
+      <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
+
+      {Object.entries(grouped).map(([group, items], idx) => (
+        <div key={group} style={{ marginBottom: 30 }}>
           <h2
-            className="text-xl font-bold cursor-pointer bg-gray-200 p-2"
-            onClick={() =>
-              setCollapsed((prev) => ({
-                ...prev,
-                [collection]: !prev[collection],
-              }))
-            }
-          >
-            {collection} ({collapsed[collection] ? "Show" : "Hide"})
+            onClick={() => setExpandedGroups(g => ({ ...g, [group]: !g[group] }))}
+            style={{ cursor: "pointer", background: "#eee", padding: 5 }}>
+            {idx + 1}. {group} {expandedGroups[group] === false ? "(Click to expand)" : ""}
           </h2>
-          {!collapsed[collection] &&
-            items.map((p) => (
-              <div key={p.fullStyle + p.colours.join(",")} className="my-4">
-                <h3 className="font-semibold text-lg">
-                  {p.fullStyle} - {p.desc} (${p.rrp.toFixed(2)} / ${
-                    p.wholesale
-                  })
-                </h3>
-                <div className="overflow-x-auto">
-                  <table className="table-auto border mt-2 text-sm">
-                    <thead>
-                      <tr>
-                        <th className="border px-1 py-1">Colour</th>
-                        <th className="border px-1 py-1">Width</th>
-                        {p.sizes.map((size) => (
-                          <th key={size} className="border px-1 py-1">
-                            {size}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {p.colours.map((color) =>
-                        p.widths.map((width) => (
-                          <tr key={color + width}>
-                            <td className="border px-1 py-1">{color}</td>
-                            <td className="border px-1 py-1">{width}</td>
-                            {p.sizes.map((size) => {
-                              const sku = buildSKU(p, width, color, size);
-                              return (
-                                <td key={sku} className="border px-1 py-1">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    className="w-12 border px-1"
-                                    value={quantities[sku] || ""}
-                                    onChange={(e) =>
-                                      handleChange(sku, e.target.value)
-                                    }
-                                  />
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+
+          {expandedGroups[group] === false ? null : (
+            items.map(item => {
+              const sizes = expandSizes(item.Size);
+              const widths = expandWidths(item.Width);
+              const colours = expandColours(item.Colours);
+
+              return (
+                <div key={item.Style} style={{ marginBottom: 20 }}>
+                  <b>{item.Collection} - {item.Desc} (${item.RRP} / ${item.Wholesale})</b>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ borderCollapse: "collapse", marginTop: 5 }}>
+                      <thead>
+                        <tr>
+                          <th></th>
+                          {sizes.map(size => <th key={size}>{size}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {colours.flatMap(colour =>
+                          widths.map(width => (
+                            <tr key={`${colour}-${width}`}>
+                              <td style={{ whiteSpace: "nowrap" }}>{colour} / {width}</td>
+                              {sizes.map(size => {
+                                const sku = generateSKU(item, width, colour, size);
+                                return (
+                                  <td key={sku}>
+                                    <input
+                                      value={quantities[sku] || ""}
+                                      onChange={e => handleChange(sku, e.target.value)}
+                                      style={{ width: 40 }}
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })
+          )}
         </div>
       ))}
     </div>
   );
 }
+
+export default App;
