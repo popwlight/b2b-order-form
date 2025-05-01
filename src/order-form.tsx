@@ -78,7 +78,7 @@ export default function B2BOrderForm() {
         className="border p-2 mb-4 w-full"
       />
       {sampleProducts.map((product) => (
-        <div key={product.style} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
+        <div key={product.style} style={ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }>
           <h2><strong>{product.style}</strong></h2>
           {product.colors.map((color) => (
             <div key={color}>
@@ -86,7 +86,7 @@ export default function B2BOrderForm() {
               {(product.widths || [""]).map((width) => (
                 <div key={width}>
                   <div>Width: {width || "-"}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <div style={ display: "flex", flexWrap: "wrap", gap: "0.5rem" }>
                     {product.sizes.map((size) => {
                       const sku = generateSKU(product.style, width, color, size);
                       return (
@@ -97,7 +97,7 @@ export default function B2BOrderForm() {
                             min="0"
                             value={quantities[sku] || ""}
                             onChange={(e) => handleChange(sku, e.target.value)}
-                            style={{ width: "60px" }}
+                            style={ width: "60px" }
                           />
                         </div>
                       );
@@ -109,7 +109,7 @@ export default function B2BOrderForm() {
           ))}
         </div>
       ))}
-      <button onClick={exportCSV} style={{ padding: "0.5rem 1rem", backgroundColor: "#4caf50", color: "#fff" }}>
+      <button onClick={exportCSV} style={ padding: "0.5rem 1rem", backgroundColor: "#4caf50", color: "#fff" }>
         导出订单 CSV
       </button>
     </div>
