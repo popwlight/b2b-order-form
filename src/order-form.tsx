@@ -1,3 +1,4 @@
+// src/order-form.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -12,203 +13,169 @@ interface Product {
   Collection: string;
 }
 
-const fetchSheetData = async (): Promise<Product[]> => {
-  const url =
-    "https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1";
-  const res = await axios.get(url);
-  return res.data.filter(
-    (row: any) => row.Style || row.Desc || row.Size || row.Width || row.Colours
-  );
-};
-
-const parseSizes = (sizeStr: string): string[] => {
+const parseSizeRange = (sizeStr: string): string[] => {
   if (!sizeStr) return [];
-  if (sizeStr.includes(",")) return sizeStr.split(",").map((s) => s.trim());
+  if (sizeStr.includes(",")) return sizeStr.split(",").map(s => s.trim());
   if (sizeStr.includes("-")) {
-    const [start, end] = sizeStr.split("-").map((s) => s.trim());
-    const toFloat = (s: string) => parseFloat(s);
+    const [start, end] = sizeStr.split("-").map(s => s.trim());
     const result: string[] = [];
-    let curr = toFloat(start);
-    const stop = toFloat(end);
-    while (curr <= stop) {
-      result.push(curr % 1 === 0 ? curr.toFixed(0) : curr.toFixed(1));
-      curr += 0.5;
+    const isHalf = start.includes(".") || end.includes(".");
+    let current = parseFloat(start);
+    const stop = parseFloat(end);
+    while (current <= stop) {
+      result.push(current % 1 === 0 ? `${current}` : `${current}`);
+      current = parseFloat((current + 0.5).toFixed(1));
     }
     return result;
   }
-  return [sizeStr];
+  return [sizeStr.trim()];
 };
 
-const parseWidths = (widthStr: string): string[] => {
-  return widthStr ? widthStr.split(",").map((w) => w.trim()) : [""];
-};
+const isFootwear = (style: string) => /\dC$|\dW$|\dF$/.test(style);
+const formatSize = (size: string) => isNaN(+size) ? size : String(size * 10).padStart(3, "0");
+const formatWidth = (width: string) => width.padStart(2, "0");
 
-const parseColours = (colourStr: string): string[] => {
-  return colourStr ? colourStr.split(",").map((c) => c.trim()) : [];
-};
-
-const OrderForm = () => {
-  const [customerId, setCustomerId] = useState<string>("");
-  const [confirmedId, setConfirmedId] = useState<string>("");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [groupedProducts, setGroupedProducts] = useState<Record<string, Product[]>>({});
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+export default function OrderForm() {
+  const [data, setData] = useState<Product[]>([]);
+  const [customerId, setCustomerId] = useState("");
+  const [quantities, setQuantities] = useState<{ [sku: string]: number }>({});
+  const [collections, setCollections] = useState<string[]>([]);
+  const [collapsed, setCollapsed] = useState<{ [col: string]: boolean }>({});
 
   useEffect(() => {
-    fetchSheetData().then((data) => {
-      const groups: Record<string, Product[]> = {};
-      let currentGroup = "";
-      for (const item of data) {
-        if (!item.Style && item.Collection) {
-          currentGroup = item.Collection.trim();
-          groups[currentGroup] = [];
-        } else if (item.Style) {
-          if (!groups[currentGroup]) groups[currentGroup] = [];
-          groups[currentGroup].push(item);
-        }
-      }
-      setProducts(data);
-      setGroupedProducts(groups);
-    });
+    axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
+      .then(res => {
+        const rows: Product[] = res.data.filter(r => r.Style || r.Collection);
+        const grouped: Product[] = [];
+        let currentCollection = "";
+        rows.forEach(row => {
+          if (!row.Style && row.Collection) {
+            currentCollection = row.Collection.trim();
+            setCollapsed(prev => ({ ...prev, [currentCollection]: true }));
+          } else {
+            row.Collection = currentCollection;
+            grouped.push(row);
+          }
+        });
+        setData(grouped);
+        setCollections([...new Set(grouped.map(r => r.Collection))]);
+      });
   }, []);
 
-  const handleQuantityChange = (sku: string, qty: number) => {
-    setQuantities((prev) => ({ ...prev, [sku]: qty }));
+  const handleChange = (sku: string, value: string) => {
+    const qty = parseInt(value);
+    setQuantities(q => ({ ...q, [sku]: isNaN(qty) ? 0 : qty }));
   };
 
-  const handleDownload = () => {
-    const rows = Object.entries(quantities)
-      .filter(([_, qty]) => qty > 0)
+  const getSkus = (product: Product): { sku: string, color: string, size: string, width: string }[] => {
+    const sizes = parseSizeRange(product.Size);
+    const widths = product.Width ? product.Width.split(",").map(w => w.trim()) : [""];
+    const colours = product.Colours ? product.Colours.split(",").map(c => c.trim()) : [""];
+    const isShoe = isFootwear(product.Style);
+    const baseStyle = product.Style.replace(/[^A-Z0-9]/gi, "");
+    return colours.flatMap(color =>
+      sizes.flatMap(size =>
+        widths.map(width => {
+          const widthPart = isShoe ? formatWidth(width) : "";
+          const sizePart = isShoe ? formatSize(size) : size;
+          const sku = isShoe
+            ? `${baseStyle}${color}${widthPart}${sizePart}`
+            : `${baseStyle}${color}${size}`;
+          return { sku, color, size, width };
+        })
+      )
+    );
+  };
+
+  const handleExport = () => {
+    const lines = Object.entries(quantities)
+      .filter(([, qty]) => qty > 0)
       .map(([sku, qty]) => `${sku},${qty}`);
-    const blob = new Blob(["SKU,Qty\n" + rows.join("\n")], {
-      type: "text/csv",
-    });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${confirmedId}.csv`;
-    link.click();
+    const blob = new Blob(["SKU,Qty\n" + lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${customerId || "order"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const totalQty = Object.values(quantities).reduce((a, b) => a + b, 0);
-  const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    const match = sku.match(/^(.+?)-(.+?)-(.+?)-(.+)$/);
-    if (match) {
-      const [_, style, width, color, size] = match;
-      const product = products.find((p) => p.Style === style);
-      if (product) return sum + parseFloat(product.Wholesale || "0") * qty;
+  const totalQty = Object.values(quantities).reduce((sum, q) => sum + (q || 0), 0);
+  const totalValue = Object.entries(quantities).reduce((sum, [sku, qty]) => {
+    if (qty > 0) {
+      const style = sku.slice(0, 10);
+      const product = data.find(p => p.Style.replace(/[^A-Z0-9]/g, "").startsWith(style));
+      if (product && product.Wholesale) sum += parseFloat(product.Wholesale) * qty;
     }
     return sum;
   }, 0);
 
-  if (!confirmedId) {
-    return (
-      <div className="p-4">
-        <h2 className="text-xl font-bold mb-2">Enter Customer ID:</h2>
-        <input
-          type="text"
-          className="border p-2 mr-2"
-          value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") setConfirmedId(customerId);
-          }}
-        />
-        <button
-          onClick={() => setConfirmedId(customerId)}
-          className="bg-blue-500 text-white px-4 py-2"
-        >
-          Next
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <strong>Total Qty:</strong> {totalQty} &nbsp;
-          <strong>Total $:</strong> {totalAmount.toFixed(2)}
+    <div className="p-4 text-sm">
+      {!customerId ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            className="border px-2 py-1"
+            placeholder="Enter Customer ID"
+            value={customerId}
+            onChange={e => setCustomerId(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") e.currentTarget.nextElementSibling?.dispatchEvent(new MouseEvent("click", { bubbles: true })); }}
+          />
+          <button
+            className="bg-black text-white px-3 py-1"
+            onClick={() => setCustomerId(customerId.trim())}
+          >Next</button>
         </div>
-        <button
-          onClick={handleDownload}
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
-          Download CSV
-        </button>
-      </div>
+      ) : (
+        <>
+          <div className="text-xs mb-2">Customer ID: {customerId} <button className="underline ml-2" onClick={() => setCustomerId("")}>Change</button></div>
+          <div className="mb-2 text-xs">Total Qty: {totalQty} | Total Value: ${totalValue.toFixed(2)}</div>
+          <button className="mb-4 bg-green-600 text-white px-3 py-1" onClick={handleExport}>Download CSV</button>
+          {collections.map((col, i) => (
+            <div key={col} className="mb-6">
+              <h2 className="text-md font-bold mb-1 cursor-pointer" onClick={() => setCollapsed(prev => ({ ...prev, [col]: !prev[col] }))}>{i + 1}. {col}</h2>
+              {!collapsed[col] && (
+                <div className="space-y-6">
+                  {data.filter(d => d.Collection === col).map(product => {
+                    const skus = getSkus(product);
+                    const rows = skus.reduce((acc, cur) => {
+                      const key = `${cur.color}-${cur.width}`;
+                      if (!acc[key]) acc[key] = [];
+                      acc[key].push(cur);
+                      return acc;
+                    }, {} as { [key: string]: typeof skus });
 
-      {Object.entries(groupedProducts).map(([collection, items], index) => (
-        <div key={collection} className="mb-6">
-          <h2 className="text-lg font-bold mb-2">
-            {index + 1}. {collection}
-          </h2>
-          {items.map((product) => (
-            <div key={product.Style} className="mb-4">
-              <div className="font-semibold">
-                {product.Style.replace(/^S0*|^A0*|^G0*/, "")}: {product.Desc} 
-                {product.RRP && product.Wholesale
-                  ? `($${product.RRP} / $${product.Wholesale})`
-                  : ""}
-              </div>
-              {parseColours(product.Colours).length > 0 && (
-                <div className="space-y-2">
-                  {parseColours(product.Colours).map((color) => (
-                    <div key={color}>
-                      <div className="font-medium">Colour: {color}</div>
-                      {parseWidths(product.Width).map((width) => (
-                        <table
-                          key={width}
-                          className="border mt-1 text-sm table-auto border-collapse"
-                        >
-                          <thead>
-                            <tr>
-                              {parseSizes(product.Size).map((size) => (
-                                <th
-                                  key={size}
-                                  className="border px-2 py-1 bg-gray-100"
-                                >
-                                  {size}
-                                </th>
+                    return (
+                      <div key={product.Style} className="border p-2">
+                        <div className="font-bold mb-1">{product.Collection} - {product.Desc} (${product.RRP} / ${product.Wholesale})</div>
+                        {Object.entries(rows).map(([group, items]) => (
+                          <div key={group} className="mb-2">
+                            <div className="text-xs mb-1">{group}</div>
+                            <div className="grid grid-cols-12 gap-1 text-center">
+                              {items.map(({ sku, size }) => (
+                                <div key={sku}>
+                                  <div className="text-[10px]">{size}</div>
+                                  <input
+                                    type="number"
+                                    className="w-14 border text-center"
+                                    value={quantities[sku] || ""}
+                                    onChange={e => handleChange(sku, e.target.value)}
+                                  />
+                                </div>
                               ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              {parseSizes(product.Size).map((size) => {
-                                const sku = `${product.Style}-${width}-${color}-${size}`;
-                                return (
-                                  <td key={sku} className="border px-1 py-1">
-                                    <input
-                                      type="number"
-                                      value={quantities[sku] || ""}
-                                      min={0}
-                                      max={100}
-                                      onChange={(e) =>
-                                        handleQuantityChange(
-                                          sku,
-                                          parseInt(e.target.value || "0")
-                                        )
-                                      }
-                                      className="w-14 border px-1 py-0.5 text-sm"
-                                    />
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          </tbody>
-                        </table>
-                      ))}
-                    </div>
-                  ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
           ))}
-        </div>
-      ))}
+        </>
+      )}
     </div>
   );
-};
-
-export default OrderForm;
+}
