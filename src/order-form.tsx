@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
-import { saveAs } from "file-saver";
-import Papa from "papaparse";
+import React, { useEffect, useState } from 'react';
+import { saveAs } from 'file-saver';
 
 function padSize(size, type) {
   if (size === "OS") return "ONE";
@@ -26,17 +25,44 @@ export default function B2BOrderForm() {
   const [quantities, setQuantities] = useState({});
   const [customerId, setCustomerId] = useState("");
 
+  useEffect(() => {
+    fetch("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
+      .then((res) => res.json())
+      .then((rows) => {
+        const map = {};
+        for (const row of rows) {
+          const { Style, Name, Size, Width, Color, "Wholesale Price": wholesale, RRP } = row;
+          if (!Style || !Name || !Size || !Color || !wholesale || !RRP) continue;
+          const key = Style;
+          if (!map[key]) {
+            map[key] = {
+              style: Style,
+              name: Name,
+              wholesale: parseFloat(wholesale),
+              rrp: RRP,
+              type: Style.startsWith("S") ? "shoe" : "accessory",
+              colors: [],
+              sizes: [],
+              widths: [],
+            };
+          }
+          if (!map[key].colors.includes(Color)) map[key].colors.push(Color);
+          if (!map[key].sizes.includes(Size)) map[key].sizes.push(Size);
+          if (Width && !map[key].widths.includes(Width)) map[key].widths.push(Width);
+        }
+        setProducts(Object.values(map));
+      });
+  }, []);
+
   const handleChange = (sku, qty) => {
-    setQuantities({ ...quantities, [sku]: qty });
+    setQuantities(Object.assign({}, quantities, { [sku]: qty }));
   };
 
   const exportCSV = () => {
     const rows = Object.entries(quantities)
       .filter(([, qty]) => parseInt(qty) > 0)
       .map(([sku, qty]) => `${sku},${qty}`);
-    const blob = new Blob([rows.join("\n")], {
-      type: "text/csv;charset=utf-8",
-    });
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const fileName = customerId.trim() || "order";
     saveAs(blob, `${fileName}.csv`);
   };
@@ -47,42 +73,8 @@ export default function B2BOrderForm() {
     return sum + price * parseInt(qty || 0);
   }, 0);
 
-  const handleUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-      complete: (result) => {
-        const rows = result.data;
-        const map = {};
-        for (const row of rows) {
-          const [style, name, size, width, color, wholesale, rrp] = row;
-          if (!style || !name || !size || !color || !wholesale || !rrp || wholesale === "") continue;
-          const key = style;
-          if (!map[key]) {
-            map[key] = {
-              style,
-              name,
-              wholesale: parseFloat(wholesale),
-              rrp,
-              type: style.startsWith("S") ? "shoe" : "accessory",
-              colors: [],
-              sizes: [],
-              widths: [],
-            };
-          }
-          if (!map[key].colors.includes(color)) map[key].colors.push(color);
-          if (!map[key].sizes.includes(size)) map[key].sizes.push(size);
-          if (width && !map[key].widths.includes(width)) map[key].widths.push(width);
-        }
-        setProducts(Object.values(map));
-      }
-    });
-  };
-
   return (
     <div className="p-4 space-y-4">
-      <input type="file" accept=".csv" onChange={handleUpload} className="mb-4" />
       <input
         placeholder="输入客户 ID"
         value={customerId}
@@ -90,7 +82,7 @@ export default function B2BOrderForm() {
         className="border p-2 mb-4 w-full"
       />
       {products.map((product) => (
-        <div key={product.style} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
+        <div key={product.style} style={ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }>
           <h2><strong>{product.style} - {product.name} (${product.rrp})</strong></h2>
           {product.colors.map((color) => (
             <div key={color}>
@@ -98,7 +90,7 @@ export default function B2BOrderForm() {
               {(product.widths.length ? product.widths : [""]).map((width) => (
                 <div key={width}>
                   <div>Width: {width || "-"}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <div style={ display: "flex", flexWrap: "wrap", gap: "0.5rem" }>
                     {product.sizes.map((size) => {
                       const sku = generateSKU(product.style, width, color, size);
                       return (
@@ -109,7 +101,7 @@ export default function B2BOrderForm() {
                             min="0"
                             value={quantities[sku] || ""}
                             onChange={(e) => handleChange(sku, e.target.value)}
-                            style={{ width: "60px" }}
+                            style={ width: "60px" }
                           />
                         </div>
                       );
@@ -122,12 +114,12 @@ export default function B2BOrderForm() {
         </div>
       ))}
       {products.length > 0 && (
-        <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+        <div style={ fontWeight: "bold", fontSize: "1.2rem" }>
           总计: ${total.toFixed(2)}
         </div>
       )}
       {products.length > 0 && (
-        <button onClick={exportCSV} style={{ padding: "0.5rem 1rem", backgroundColor: "#4caf50", color: "#fff" }}>
+        <button onClick={exportCSV} style={ padding: "0.5rem 1rem", backgroundColor: "#4caf50", color: "#fff" }>
           导出订单 CSV
         </button>
       )}
