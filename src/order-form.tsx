@@ -4,180 +4,175 @@ import axios from "axios";
 const SHEET_URL =
   "https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1";
 
-const parseSizes = (sizeRange: string) => {
-  if (!sizeRange) return [];
-  if (sizeRange.includes(",")) return sizeRange.split(",").map((s) => s.trim());
-  if (!sizeRange.includes("-")) return [sizeRange.trim()];
-  const result: string[] = [];
-  const [start, end] = sizeRange.split("-").map((s) => s.trim());
-  const numStart = parseFloat(start);
-  const numEnd = parseFloat(end);
-  if (!isNaN(numStart) && !isNaN(numEnd)) {
-    for (let i = numStart; i <= numEnd; i += 0.5) {
-      result.push(i % 1 === 0 ? `${i}` : `${Math.floor(i)}.5`);
-    }
-  } else {
-    result.push(sizeRange);
-  }
-  return result;
-};
+function isShoeProduct(style: string) {
+  return /[0-9]{3}[CW]$/.test(style);
+}
 
-const App = () => {
+function expandSizes(sizeStr: string, style: string) {
+  if (!sizeStr) return [];
+  if (sizeStr.includes(",")) return sizeStr.split(",").map((s) => s.trim());
+  if (sizeStr.includes("-")) {
+    const [start, end] = sizeStr.split("-").map((s) => s.trim());
+    const isChild = /C$/.test(style);
+    const from = parseFloat(start);
+    const to = parseFloat(end);
+    const result = [];
+    for (let i = from; i <= to; i += 0.5) {
+      result.push(i % 1 === 0 ? `${i}` : `${i}`);
+    }
+    return result;
+  }
+  return [sizeStr];
+}
+
+function generateSKU(item: any, width: string, colour: string, size: string) {
+  const style = item.Style.replace("S000", "").replace("S0", "").replace("G0", "").replace("A0", "").replace("G00", "").replace("A00", "");
+  const cleanColour = colour.replace(/\(.*?\)/g, "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const padSize = (size: string) => {
+    if (!isNaN(Number(size))) {
+      const num = Number(size);
+      return num < 10 ? `00${num}` : num < 100 ? `0${num}` : `${num}`;
+    }
+    return size.padStart(3, "0");
+  };
+  const sizePart = padSize((parseFloat(size) * 10).toString());
+  if (isShoeProduct(item.Style)) {
+    return `${style}${width.padStart(2, "0")}${cleanColour}${sizePart}`;
+  } else {
+    return `${style}${cleanColour}${padSize(size)}`;
+  }
+}
+
+export default function OrderForm() {
   const [data, setData] = useState<any[]>([]);
-  const [groupedData, setGroupedData] = useState<Record<string, any[]>>({});
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [customerId, setCustomerId] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [grouped, setGrouped] = useState<{ [key: string]: any[] }>({});
+  const [customerID, setCustomerID] = useState("");
+  const [quantities, setQuantities] = useState<{ [sku: string]: number }>({});
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     axios.get(SHEET_URL).then((res) => {
-      const raw = res.data;
-      const grouped: Record<string, any[]> = {};
-      let currentCollection = "";
-      raw.forEach((row: any) => {
-        const hasCollection = row.Collection && !row.Style;
-        if (hasCollection) {
-          currentCollection = row.Collection.trim();
-          grouped[currentCollection] = [];
-        } else if (row.Style && currentCollection) {
-          if (!grouped[currentCollection]) grouped[currentCollection] = [];
-          grouped[currentCollection].push(row);
+      const rows = res.data;
+      const groupedData: { [key: string]: any[] } = {};
+      let currentGroup = "";
+      rows.forEach((row: any) => {
+        if (row.Collection && !row.Style) {
+          currentGroup = row.Collection;
+          groupedData[currentGroup] = [];
+        } else if (row.Style) {
+          groupedData[currentGroup] = groupedData[currentGroup] || [];
+          groupedData[currentGroup].push(row);
         }
       });
-      setData(raw);
-      setGroupedData(grouped);
+      setGrouped(groupedData);
+      setData(rows);
     });
   }, []);
 
   const handleChange = (sku: string, value: string) => {
-    const intValue = parseInt(value);
-    if (!isNaN(intValue)) {
-      setQuantities({ ...quantities, [sku]: intValue });
-    } else {
-      const updated = { ...quantities };
-      delete updated[sku];
-      setQuantities(updated);
-    }
+    const intVal = parseInt(value);
+    setQuantities({ ...quantities, [sku]: isNaN(intVal) ? 0 : intVal });
   };
 
-  const generateSKU = (item: any, size: string, width: string, color: string) => {
-    const base = item.Style.replace(/[^A-Z0-9]/g, "");
-    const isShoe = /\d/.test(item.Size);
-    const shortSize = isShoe
-      ? String(size.includes(".") ? parseFloat(size) * 10 : parseInt(size) * 10).padStart(3, "0")
-      : size.toUpperCase() === "ONE" || size === "OS"
-      ? "ONE"
-      : size;
-    const widthFixed = width ? width.padStart(2, "0") : "";
-    return isShoe ? `${base}${shortSize}${widthFixed}${color}` : `${base}${shortSize}${color}`;
-  };
-
-  const exportCSV = () => {
-    const rows = Object.entries(quantities)
-      .filter(([_, qty]) => qty > 0)
-      .map(([sku, qty]) => `${sku},${qty}`);
-    const csv = `SKU,Qty\n${rows.join("\n")}`;
-    const blob = new Blob([csv], { type: "text/csv" });
+  const downloadCSV = () => {
+    const entries = Object.entries(quantities).filter(([, qty]) => qty > 0);
+    const csv = ["SKU,Qty", ...entries.map(([sku, qty]) => `${sku},${qty}`)].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${customerId || "order"}.csv`;
-    a.click();
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${customerID}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const totalQty = Object.values(quantities).reduce((sum, val) => sum + val, 0);
+  const totalQty = Object.values(quantities).reduce((a, b) => a + (b || 0), 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    const item = data.find((row) => {
-      const sizes = parseSizes(row.Size);
-      const widths = row.Width ? row.Width.split(",").map((w: string) => w.trim()) : [""];
-      const colours = row.Colours ? row.Colours.split(",").map((c: string) => c.trim()) : [""];
-      return sizes.some((s) => widths.some((w) => colours.some((col) => {
-        return generateSKU(row, s, w, col) === sku;
-      })));
-    });
-    return item && item.Wholesale ? sum + qty * parseFloat(item.Wholesale) : sum;
+    const item = data.find((i) => generateSKU(i, "", "", "").startsWith(sku.slice(0, 8)));
+    return sum + ((item?.Wholesale || 0) * (qty || 0));
   }, 0);
 
-  if (!showForm) {
+  if (!submitted) {
     return (
       <div style={{ padding: 20 }}>
         <h2>Enter Customer ID</h2>
         <input
           type="text"
-          value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-          placeholder="Customer ID"
+          value={customerID}
+          onChange={(e) => setCustomerID(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") setSubmitted(true);
+          }}
         />
-        <button onClick={() => setShowForm(true)}>Next</button>
+        <button onClick={() => setSubmitted(true)}>Next</button>
       </div>
     );
   }
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>Order Form - {customerId}</h2>
-      <p>Total Quantity: {totalQty}</p>
-      <p>Total Amount: ${totalAmount.toFixed(2)}</p>
-      <button onClick={exportCSV}>Download CSV</button>
-      {Object.entries(groupedData).map(([collection, group], idx) => {
-        const hasWholesale = group.some((item) => item.Wholesale);
-        if (!hasWholesale) return null;
-
-        return (
-          <details key={collection} open={false} style={{ marginBottom: 20 }}>
-            <summary>
-              {idx + 1}. {collection} ({group[0]?.Collection})
-            </summary>
-            {group.map((item, i) => {
-              if (!item.Wholesale || !item.Size || !item.Colours) return null;
-              const sizes = parseSizes(item.Size);
-              const widths = item.Width ? item.Width.split(",").map((w: string) => w.trim()) : [""];
-              const colours = item.Colours.split(",").map((c: string) => c.trim());
-              return (
-                <div key={i} style={{ marginBottom: 12 }}>
-                  <b>
-                    {item.Collection} - {item.Desc} (${item.RRP} / ${item.Wholesale})
-                  </b>
-                  <table style={{ borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                    <thead>
-                      <tr>
-                        <th>Colour</th>
-                        {sizes.map((size) => (
-                          <th key={size}>{size}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {colours.map((color) => (
-                        widths.map((width) => (
-                          <tr key={`${color}-${width}`}>
-                            <td>{color} {width}</td>
-                            {sizes.map((size) => {
-                              const sku = generateSKU(item, size, width, color);
-                              return (
-                                <td key={sku}>
-                                  <input
-                                    type="number"
-                                    value={quantities[sku] || ""}
-                                    onChange={(e) => handleChange(sku, e.target.value)}
-                                    style={{ width: "45px" }}
-                                  />
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))
+      <h2>Order Form - Customer: {customerID}</h2>
+      <p>Total Qty: {totalQty} | Total $: ${totalAmount.toFixed(2)}</p>
+      <button onClick={downloadCSV}>Download CSV</button>
+      {Object.entries(grouped).map(([collection, items]) => (
+        <div key={collection} style={{ marginTop: 30 }}>
+          <h3>{collection}</h3>
+          {items.map((item, idx) => {
+            const sizes = expandSizes(item.Size, item.Style);
+            const widths = item.Width?.split(",").map((w: string) => w.trim()) || [" "];
+            const colours = item.Colours?.split(",").map((c: string) => c.trim()) || [];
+            const skus = widths.flatMap((w: string) =>
+              colours.flatMap((c: string) =>
+                sizes.map((s: string) => generateSKU(item, w, c, s))
+              )
+            );
+            if (!sizes.length || !colours.length) return null;
+            return (
+              <div key={idx} style={{ marginBottom: 20 }}>
+                <strong>
+                  {item.Collection} - {item.Desc} (${item.RRP} / ${item.Wholesale})
+                </strong>
+                <table border={1} cellPadding={5} style={{ marginTop: 10, fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Width</th>
+                      <th>Colour</th>
+                      {sizes.map((size) => (
+                        <th key={size}>{size}</th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })}
-          </details>
-        );
-      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {widths.map((w) =>
+                      colours.map((c) => (
+                        <tr key={`${w}-${c}`}>
+                          <td>{w}</td>
+                          <td>{c}</td>
+                          {sizes.map((s) => {
+                            const sku = generateSKU(item, w, c, s);
+                            return (
+                              <td key={sku}>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  style={{ width: 40 }}
+                                  value={quantities[sku] || ""}
+                                  onChange={(e) => handleChange(sku, e.target.value)}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
-};
-
-export default App;
+}
