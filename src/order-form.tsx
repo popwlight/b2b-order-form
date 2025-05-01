@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { saveAs } from 'file-saver';
 
-function padSize(size, type) {
+function padSize(size: string, type: string) {
   if (size === "OS") return "ONE";
   if (type === "shoe") {
     const numeric = parseFloat(size);
@@ -11,7 +10,7 @@ function padSize(size, type) {
   return size.padStart(3, "0");
 }
 
-function generateSKU(style, width, color, size) {
+function generateSKU(style: string, width: string, color: string, size: string) {
   const paddedSize = padSize(size, style.startsWith("S") ? "shoe" : "other");
   if (style.startsWith("S")) {
     return `${style}${width}${color}${paddedSize}`;
@@ -21,41 +20,40 @@ function generateSKU(style, width, color, size) {
 }
 
 export default function B2BOrderForm() {
-  const [products, setProducts] = useState([]);
-  const [quantities, setQuantities] = useState({});
+  const [products, setProducts] = useState<any[]>([]);
+  const [quantities, setQuantities] = useState<{ [sku: string]: string }>({});
   const [customerId, setCustomerId] = useState("");
 
   useEffect(() => {
     fetch("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
-      .then((res) => res.json())
+      .then(res => res.json())
       .then((rows) => {
-        const map = {};
+        const map: { [style: string]: any } = {};
         for (const row of rows) {
           const { Style, Name, Size, Width, Color, "Wholesale Price": wholesale, RRP } = row;
           if (!Style || !Name || !Size || !Color || !wholesale || !RRP) continue;
-          const key = Style;
-          if (!map[key]) {
-            map[key] = {
+          if (!map[Style]) {
+            map[Style] = {
               style: Style,
               name: Name,
               wholesale: parseFloat(wholesale),
               rrp: RRP,
-              type: Style.startsWith("S") ? "shoe" : "accessory",
+              type: Style.startsWith("S") ? "shoe" : "other",
               colors: [],
               sizes: [],
               widths: [],
             };
           }
-          if (!map[key].colors.includes(Color)) map[key].colors.push(Color);
-          if (!map[key].sizes.includes(Size)) map[key].sizes.push(Size);
-          if (Width && !map[key].widths.includes(Width)) map[key].widths.push(Width);
+          if (!map[Style].colors.includes(Color)) map[Style].colors.push(Color);
+          if (!map[Style].sizes.includes(Size)) map[Style].sizes.push(Size);
+          if (Width && !map[Style].widths.includes(Width)) map[Style].widths.push(Width);
         }
         setProducts(Object.values(map));
       });
   }, []);
 
-  const handleChange = (sku, qty) => {
-    setQuantities(Object.assign({}, quantities, { [sku]: qty }));
+  const handleChange = (sku: string, qty: string) => {
+    setQuantities({ ...quantities, [sku]: qty });
   };
 
   const exportCSV = () => {
@@ -70,7 +68,7 @@ export default function B2BOrderForm() {
   const total = Object.entries(quantities).reduce((sum, [sku, qty]) => {
     const item = products.find(p => sku.startsWith(p.style));
     const price = item?.wholesale || 0;
-    return sum + price * parseInt(qty || 0);
+    return sum + price * parseInt(qty || "0");
   }, 0);
 
   return (
@@ -84,14 +82,14 @@ export default function B2BOrderForm() {
       {products.map((product) => (
         <div key={product.style} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
           <h2><strong>{product.style} - {product.name} (${product.rrp})</strong></h2>
-          {product.colors.map((color) => (
+          {product.colors.map((color: string) => (
             <div key={color}>
               <div><strong>Color: {color}</strong></div>
-              {(product.widths.length ? product.widths : [""]).map((width) => (
+              {(product.widths.length ? product.widths : [""]).map((width: string) => (
                 <div key={width}>
                   <div>Width: {width || "-"}</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                    {product.sizes.map((size) => {
+                    {product.sizes.map((size: string) => {
                       const sku = generateSKU(product.style, width, color, size);
                       return (
                         <div key={sku}>
@@ -101,7 +99,7 @@ export default function B2BOrderForm() {
                             min="0"
                             value={quantities[sku] || ""}
                             onChange={(e) => handleChange(sku, e.target.value)}
-                            style={ width: "60px" }
+                            style={{ width: "60px" }}
                           />
                         </div>
                       );
@@ -114,12 +112,12 @@ export default function B2BOrderForm() {
         </div>
       ))}
       {products.length > 0 && (
-        <div style={ fontWeight: "bold", fontSize: "1.2rem" }>
+        <div style={{ fontWeight: "bold", fontSize: "1.2rem" }}>
           总计: ${total.toFixed(2)}
         </div>
       )}
       {products.length > 0 && (
-        <button onClick={exportCSV} style={ padding: "0.5rem 1rem", backgroundColor: "#4caf50", color: "#fff" }>
+        <button onClick={exportCSV} style={{ padding: "0.5rem 1rem", backgroundColor: "#4caf50", color: "#fff" }}>
           导出订单 CSV
         </button>
       )}
