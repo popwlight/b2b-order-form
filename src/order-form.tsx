@@ -112,16 +112,16 @@ const sendEmail = async () => {
   });
   htmlTable += "</table>";
 
-  const res = await fetch("/api/send-order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: email,
-      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
-      htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
-      csvContent,
-    }),
-  });
+const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    to: email,
+    subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+    htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
+    csvContent,
+  }),
+});
 
   const result = await res.json();
   if (res.ok) {
