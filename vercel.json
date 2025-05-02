@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/send-order.ts": {
-      "runtime": "nodejs18.x"
-    }
-  }
-}
