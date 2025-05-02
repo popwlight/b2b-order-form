@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/send-order.ts": {
+      "runtime": "edge"
+    }
+  },
+  "routes": [
+    { "src": "/api/send-order", "dest": "/api/send-order.ts" }
+  ]
+}
