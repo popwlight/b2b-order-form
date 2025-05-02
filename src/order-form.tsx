@@ -119,6 +119,8 @@ console.log("Sending to Cloudflare Worker:", {
   csvContent,
 });
 
+const encodeToBase64 = (str) => btoa(unescape(encodeURIComponent(str)));
+
 const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -126,7 +128,7 @@ const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
     to: email,
     subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
     htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
-    csvContent,
+    csvContent: encodeToBase64(csvContent),
   }),
 });
 
