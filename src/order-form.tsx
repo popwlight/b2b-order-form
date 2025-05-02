@@ -8,7 +8,7 @@
 // - 显示总数量与总金额（批发价）
 // - Download CSV 按钮在页面顶部
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
 function expandSizes(sizeRange: string, style?: string): string[] {
@@ -58,6 +58,7 @@ function isShoe(style: string) {
 
 function App() {
   const [data, setData] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [customerId, setCustomerId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -200,19 +201,25 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
     onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
     style={{ padding: 5, fontSize: 16 }}
   />
-  <div>
-    <input
-      type="file"
-      accept=".csv"
-      onChange={handleImportCSV}
-      style={{ display: "none" }}
-      id="csv-input"
-    />
-    <label htmlFor="csv-input">
-      <button style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}>Import CSV</button>
-    </label>
-    <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>Download CSV</button>
-  </div>
+ <div>
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept=".csv"
+    onChange={handleImportCSV}
+    style={{ display: "none" }}
+  />
+  <button
+    type="button"
+    onClick={() => fileInputRef.current?.click()}
+    style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}
+  >
+    Import CSV
+  </button>
+  <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
+    Download CSV
+  </button>
+</div>
 </div>
 
 
