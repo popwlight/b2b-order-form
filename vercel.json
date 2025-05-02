@@ -1,10 +1,7 @@
 {
   "functions": {
     "api/send-order.ts": {
-      "runtime": "edge"
+      "runtime": "nodejs18.x"
     }
-  },
-  "routes": [
-    { "src": "/api/send-order", "dest": "/api/send-order.ts" }
-  ]
+  }
 }
