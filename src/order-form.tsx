@@ -60,20 +60,55 @@ function App() {
   const [data, setData] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+  const result: Record<string, boolean> = {};
+  let foundFirst = false;
+
+  data.forEach(row => {
+    if (row.Collection && !row.Style && !row.Desc) {
+      if (!foundFirst) {
+        result[row.Collection] = true; // ✅ 第一个展开
+        foundFirst = true;
+      } else {
+        result[row.Collection] = false; // ❌ 其他默认收缩
+      }
+    }
+  });
+
+  return result;
+});
+
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
-   axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
-  .then(res => {
-    setData(res.data);
-    const map: Record<string, any> = {};
-    res.data.forEach(i => {
-      if (i.Style) map[i.Style] = i;
+  axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
+    .then(res => {
+      setData(res.data);
+
+      // 设置 styleMap
+      const map: Record<string, any> = {};
+      res.data.forEach(i => {
+        if (i.Style) map[i.Style] = i;
+      });
+      setStyleMap(map);
+
+      // 设置 expandedGroups，只展开第一个 Collection
+      const expanded: Record<string, boolean> = {};
+      let currentGroup: string | null = null;
+      for (const row of res.data) {
+        if (row.Collection && !row.Style && !row.Desc) {
+          if (currentGroup === null) {
+            currentGroup = row.Collection;
+            expanded[row.Collection] = true; // ✅ 第一个展开
+          } else {
+            expanded[row.Collection] = false;
+          }
+        }
+      }
+      setExpandedGroups(expanded);
     });
-    setStyleMap(map);
-  });
-  }, []);
+}, []);
+
 
   const grouped: Record<string, any[]> = {};
   let currentGroup = "Ungrouped";
