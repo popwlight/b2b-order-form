@@ -11,8 +11,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const [styleMap, setStyleMap] = useState<Record<string, any>>({});
-
 function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
@@ -63,6 +61,7 @@ function App() {
   const [customerId, setCustomerId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
    axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
