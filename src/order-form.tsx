@@ -173,12 +173,22 @@ function App() {
       setQuantities(imported);
       e.target.value = "";
 
-     setTimeout(() => {
+setTimeout(() => {
   setExpandedGroups(prev => {
     const updated = { ...prev };
     Object.keys(imported).forEach(sku => {
-      const styleCode = sku.substring(0, 9);
-      const item = data.find(i => i.Style === styleCode);
+      const item = data.find(i => {
+        const sizes = expandSizes(i.Size, i.Style);
+        const widths = expandWidths(i.Width);
+        const colours = expandColours(i.Colours);
+        return colours.some(colour =>
+          widths.some(width =>
+            sizes.some(size =>
+              generateSKU(i, width, colour, size) === sku
+            )
+          )
+        );
+      });
       if (item?.Collection) {
         updated[item.Collection] = true;
       }
