@@ -92,15 +92,16 @@ function App() {
   }, []);
 
 const sendEmail = async () => {
+    const hasOrder = Object.values(quantities).some(qty => qty > 0);
+    if (!hasOrder) {
+    alert("❌ No items ordered. Please enter quantities before sending.");
+    return;
+  }
   if (!email) {
     alert("Please enter an email address.");
     return;
   }
-  if (Object.values(quantities).every(q => q <= 0)) {
-  alert("❌ No items ordered. Please enter quantities before sending.");
-  return;
-}
-  // 生成 CSV 内容
+    // 生成 CSV 内容
  const rows = Object.entries(quantities)
   .filter(([_, v]) => v > 0)
   .map(([sku, qty]) => `${sku},${qty}`);
@@ -186,10 +187,11 @@ const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
   };
 
   const downloadCSV = () => {
-    if (Object.values(quantities).every(q => q <= 0)) {
-  alert("❌ No items ordered. Please enter quantities before downloading.");
-  return;
-}
+   const hasOrder = Object.values(quantities).some(qty => qty > 0);
+  if (!hasOrder) {
+    alert("❌ No items ordered. Please enter quantities before downloading.");
+    return;
+  }
     const rows = Object.entries(quantities)
       .filter(([_, v]) => v > 0)
       .map(([sku, qty]) => `${sku},${qty}`);
