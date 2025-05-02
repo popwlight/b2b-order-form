@@ -192,20 +192,21 @@ const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
       }
     });
 
-    setQuantities(imported);
-    e.target.value = ""; // 允许重复导入同一文件
+setQuantities(imported);
+e.target.value = ""; // 重置文件选择框
 
-    // 自动展开相关分组
-    const groupsToExpand: Record<string, boolean> = { ...expandedGroups };
-    Object.keys(imported).forEach(sku => {
-      const styleCode = sku.substring(0, 9);
-      const item = styleMap[styleCode];
-      if (item?.Collection) {
-        groupsToExpand[item.Collection] = true;
-      }
-    });
-    setExpandedGroups(groupsToExpand);
-  };
+// 自动展开包含数量的 Collection
+setTimeout(() => {
+  const groupsToExpand: Record<string, boolean> = { ...expandedGroups };
+  Object.keys(imported).forEach(sku => {
+    const styleCode = sku.substring(0, 9);
+    const item = styleMap[styleCode];
+    if (item?.Collection) {
+      groupsToExpand[item.Collection] = true;
+    }
+  });
+  setExpandedGroups(groupsToExpand);
+}, 0);
   reader.readAsText(file);
 };
 
