@@ -11,14 +11,32 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-function expandSizes(sizeRange: string): string[] {
+function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
+
+  // 特例：儿童鞋（Style 结尾为 C 且 size 是 "6 - 2.5"）
+  if (style?.endsWith("C") && sizeRange.trim() === "6 - 2.5") {
+    const part1: string[] = [];
+    const part2: string[] = [];
+    for (let i = 6; i <= 13.5; i += 0.5) {
+      part1.push(i % 1 === 0 ? `${i}` : `${i.toFixed(1)}`);
+    }
+    for (let i = 1; i <= 2.5; i += 0.5) {
+      part2.push(i % 1 === 0 ? `${i}` : `${i.toFixed(1)}`);
+    }
+    return [...part1, ...part2];
+  }
+
   const parts = sizeRange.split(",");
   if (parts.length > 1) return parts.map(s => s.trim());
+
   const match = sizeRange.match(/(\d+(\.\d+)?)\s*-\s*(\d+(\.\d+)?)/);
   if (!match) return [sizeRange];
+
   let [start, , end] = [parseFloat(match[1]), match[2], parseFloat(match[3])];
+  if (start > end) [start, end] = [end, start]; // 处理反向范围
+
   const sizes: string[] = [];
   for (let i = start; i <= end; i += 0.5) {
     sizes.push(i % 1 === 0 ? i.toString() : i.toFixed(1));
@@ -129,7 +147,7 @@ function App() {
 
           {expandedGroups[group] === false ? null : (
             items.map(item => {
-              const sizes = expandSizes(item.Size);
+              const sizes = expandSizes(item.Size, item.Style);
               const widths = expandWidths(item.Width);
               const colours = expandColours(item.Colours);
 
