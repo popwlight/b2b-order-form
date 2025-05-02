@@ -181,15 +181,18 @@ e.target.value = ""; // 重置文件选择框
 
 // 自动展开包含数量的 Collection
 setTimeout(() => {
-  const groupsToExpand: Record<string, boolean> = { ...expandedGroups };
+  const groupsToExpand: Record<string, boolean> = {};
+
   Object.keys(imported).forEach(sku => {
     const styleCode = sku.substring(0, 9);
-    const item = styleMap[styleCode];
+    const item = data.find(i => i.Style === styleCode);
     if (item?.Collection) {
       groupsToExpand[item.Collection] = true;
     }
   });
-  setExpandedGroups(groupsToExpand);
+
+  // 保留原有分组状态，合并展开的新组
+  setExpandedGroups(prev => ({ ...prev, ...groupsToExpand }));
 }, 0);
   reader.readAsText(file);
 };
