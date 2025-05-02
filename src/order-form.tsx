@@ -96,7 +96,10 @@ const sendEmail = async () => {
     alert("Please enter an email address.");
     return;
   }
-
+  if (Object.values(quantities).every(q => q <= 0)) {
+  alert("❌ No items ordered. Please enter quantities before sending.");
+  return;
+}
   // 生成 CSV 内容
  const rows = Object.entries(quantities)
   .filter(([_, v]) => v > 0)
@@ -183,6 +186,10 @@ const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
   };
 
   const downloadCSV = () => {
+    if (Object.values(quantities).every(q => q <= 0)) {
+  alert("❌ No items ordered. Please enter quantities before downloading.");
+  return;
+}
     const rows = Object.entries(quantities)
       .filter(([_, v]) => v > 0)
       .map(([sku, qty]) => `${sku},${qty}`);
