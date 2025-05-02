@@ -145,19 +145,7 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
     if (isNaN(val)) return size.padStart(3, "0");
     return (val * 10).toFixed(0).padStart(3, "0");
   };
-
-<input
-  type="file"
-  accept=".csv"
-  onChange={handleImportCSV}
-  style={{ display: "none" }}
-  id="csv-input"
-/>
-<label htmlFor="csv-input">
-  <button style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}>Import CSV</button>
-</label>
-
-  
+ 
   const downloadCSV = () => {
     const rows = Object.entries(quantities)
       .filter(([_, v]) => v > 0)
@@ -204,16 +192,29 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <input
-          placeholder="Enter Customer ID"
-          value={customerId}
-          onChange={e => setCustomerId(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-          style={{ padding: 5, fontSize: 16 }}
-        />
-        <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>Download CSV</button>
-      </div>
+     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+  <input
+    placeholder="Enter Customer ID"
+    value={customerId}
+    onChange={e => setCustomerId(e.target.value)}
+    onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+    style={{ padding: 5, fontSize: 16 }}
+  />
+  <div>
+    <input
+      type="file"
+      accept=".csv"
+      onChange={handleImportCSV}
+      style={{ display: "none" }}
+      id="csv-input"
+    />
+    <label htmlFor="csv-input">
+      <button style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}>Import CSV</button>
+    </label>
+    <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>Download CSV</button>
+  </div>
+</div>
+
 
       <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
 
