@@ -173,17 +173,20 @@ function App() {
       setQuantities(imported);
       e.target.value = "";
 
-      setTimeout(() => {
-        const groupsToExpand: Record<string, boolean> = {};
-        Object.keys(imported).forEach(sku => {
-          const styleCode = sku.substring(0, 9);
-          const item = data.find(i => i.Style === styleCode);
-          if (item?.Collection) {
-            groupsToExpand[item.Collection] = true;
-          }
-        });
-        setExpandedGroups(prev => ({ ...prev, ...groupsToExpand }));
-      }, 0);
+     setTimeout(() => {
+  setExpandedGroups(prev => {
+    const updated = { ...prev };
+    Object.keys(imported).forEach(sku => {
+      const styleCode = sku.substring(0, 9);
+      const item = data.find(i => i.Style === styleCode);
+      if (item?.Collection) {
+        updated[item.Collection] = true;
+      }
+    });
+    return updated;
+  });
+}, 0);
+
     };
     reader.readAsText(file);
   };
