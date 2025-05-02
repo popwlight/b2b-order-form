@@ -119,7 +119,12 @@ console.log("Sending to Cloudflare Worker:", {
   csvContent,
 });
 
-const encodeToBase64 = (str) => btoa(unescape(encodeURIComponent(str)));
+const encodeToBase64 = (str: string) => {
+  const utf8Bytes = new TextEncoder().encode(str);
+  let binary = '';
+  utf8Bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
+};
 
 const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
   method: "POST",
