@@ -236,11 +236,33 @@ setTimeout(() => {
 
       {Object.entries(grouped).map(([group, items], idx) => (
         <div key={group} style={{ marginBottom: 30 }}>
-          <h2
-            onClick={() => setExpandedGroups(g => ({ ...g, [group]: !g[group] }))}
-            style={{ cursor: "pointer", background: "#eee", padding: 5 }}>
-            {idx + 1}. {group} {expandedGroups[group] === false ? "(Click to expand)" : ""}
-          </h2>
+         <h2
+  onClick={() => setExpandedGroups(g => ({ ...g, [group]: !g[group] }))}
+  style={{ cursor: "pointer", background: "#eee", padding: 5 }}
+>
+  {idx + 1}. {group}
+  {" "}
+  {(() => {
+    let qty = 0;
+    let amount = 0;
+    items.forEach((item: any) => {
+      const sizes = expandSizes(item.Size, item.Style);
+      const widths = expandWidths(item.Width);
+      const colours = expandColours(item.Colours);
+      colours.forEach(colour => {
+        widths.forEach(width => {
+          sizes.forEach(size => {
+            const sku = generateSKU(item, width, colour, size);
+            const count = quantities[sku] || 0;
+            qty += count;
+            amount += count * parseFloat(item.Wholesale || "0");
+          });
+        });
+      });
+    });
+    return `(Ordered: ${qty}, $${amount.toFixed(2)})`;
+  })()}
+</h2>
 
           {expandedGroups[group] === false ? null : (
             items.map(item => {
