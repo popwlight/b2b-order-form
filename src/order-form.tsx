@@ -27,6 +27,7 @@ function expandSizes(sizeRange: string, style?: string): string[] {
     }
     return [...part1, ...part2];
   }
+  const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
   const parts = sizeRange.split(",");
   if (parts.length > 1) return parts.map(s => s.trim());
@@ -63,8 +64,15 @@ function App() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
-      .then(res => setData(res.data));
+   axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
+  .then(res => {
+    setData(res.data);
+    const map: Record<string, any> = {};
+    res.data.forEach(i => {
+      if (i.Style) map[i.Style] = i;
+    });
+    setStyleMap(map);
+  });
   }, []);
 
   const grouped: Record<string, any[]> = {};
@@ -118,9 +126,10 @@ function App() {
 
   const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    const item = data.find(i => sku.startsWith(i.Style));
-    return sum + ((item?.Wholesale || 0) * qty);
-  }, 0);
+  const styleCode = sku.substring(0, 9); // 前9位为款号
+  const item = styleMap[styleCode];
+  return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
+}, 0);
 
   return (
     <div style={{ padding: 20 }}>
