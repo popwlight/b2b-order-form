@@ -167,17 +167,24 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
   return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
 }, 0);
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = (event) => {
     const text = event.target?.result as string;
-    const lines = text.split("\n").slice(1); // 跳过第一行标题
-    const imported: Record<string, number> = {};
+    const lines = text.trim().split("\n");
 
-    lines.forEach(line => {
+    // ✅ 判断是否为合法导出的 CSV 文件
+    const header = lines[0].trim();
+    if (header !== "SKU,Qty") {
+      alert("Invalid file format. Please import a file exported from this system.");
+      return;
+    }
+
+    const imported: Record<string, number> = {};
+    lines.slice(1).forEach(line => {
       const [sku, qtyStr] = line.trim().split(",");
       const qty = parseInt(qtyStr);
       if (sku && !isNaN(qty)) {
@@ -186,10 +193,22 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
     });
 
     setQuantities(imported);
-    e.target.value = ""; // ✅ 重置 input，允许重复上传同一文件
+    e.target.value = ""; // 允许重复导入同一文件
+
+    // 自动展开相关分组
+    const groupsToExpand: Record<string, boolean> = { ...expandedGroups };
+    Object.keys(imported).forEach(sku => {
+      const styleCode = sku.substring(0, 9);
+      const item = styleMap[styleCode];
+      if (item?.Collection) {
+        groupsToExpand[item.Collection] = true;
+      }
+    });
+    setExpandedGroups(groupsToExpand);
   };
   reader.readAsText(file);
 };
+
 
   return (
     <div style={{ padding: 20 }}>
