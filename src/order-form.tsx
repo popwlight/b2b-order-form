@@ -146,6 +146,18 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
     return (val * 10).toFixed(0).padStart(3, "0");
   };
 
+<input
+  type="file"
+  accept=".csv"
+  onChange={handleImportCSV}
+  style={{ display: "none" }}
+  id="csv-input"
+/>
+<label htmlFor="csv-input">
+  <button style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}>Import CSV</button>
+</label>
+
+  
   const downloadCSV = () => {
     const rows = Object.entries(quantities)
       .filter(([_, v]) => v > 0)
@@ -165,6 +177,30 @@ const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(()
   const item = styleMap[styleCode];
   return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
 }, 0);
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const text = event.target?.result as string;
+    const lines = text.split("\n").slice(1); // 跳过第一行标题
+    const imported: Record<string, number> = {};
+
+    lines.forEach(line => {
+      const [sku, qtyStr] = line.trim().split(",");
+      const qty = parseInt(qtyStr);
+      if (sku && !isNaN(qty)) {
+        imported[sku] = qty;
+      }
+    });
+
+    setQuantities(imported);
+    e.target.value = ""; // ✅ 重置 input，允许重复上传同一文件
+  };
+  reader.readAsText(file);
+};
 
   return (
     <div style={{ padding: 20 }}>
