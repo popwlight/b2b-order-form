@@ -59,6 +59,7 @@ function App() {
   const [data, setData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customerId, setCustomerId] = useState("");
+  const [email, setEmail] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
@@ -90,6 +91,47 @@ function App() {
       });
   }, []);
 
+const sendEmail = async () => {
+  if (!email) {
+    alert("Please enter an email address.");
+    return;
+  }
+
+  // 生成 CSV 内容
+  const rows = Object.entries(quantities)
+    .filter(([_, v]) => v > 0)
+    .map(([sku, qty]) => `${sku},${qty}`);
+  const csvContent = `SKU,Qty\n${rows.join("\n")}`;
+
+  // 生成 HTML 表格
+  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
+  Object.entries(quantities).forEach(([sku, qty]) => {
+    if (qty > 0) {
+      htmlTable += `<tr><td>${sku}</td><td>${qty}</td></tr>`;
+    }
+  });
+  htmlTable += "</table>";
+
+  const res = await fetch("/api/send-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: email,
+      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+      htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
+      csvContent,
+    }),
+  });
+
+  const result = await res.json();
+  if (res.ok) {
+    alert("✅ Email sent successfully.");
+  } else {
+    alert("❌ Failed to send: " + result.error);
+  }
+};
+
+  
   const grouped: Record<string, any[]> = {};
   let currentGroup = "Ungrouped";
   data.forEach(row => {
@@ -212,6 +254,16 @@ setTimeout(() => {
           style={{ padding: 5, fontSize: 16 }}
         />
         <div>
+          <input
+  type="email"
+  placeholder="Enter email to send"
+  value={email}
+  onChange={e => setEmail(e.target.value)}
+  style={{ padding: 5, fontSize: 16, marginLeft: 10 }}
+/>
+<button onClick={sendEmail} style={{ padding: 8, fontWeight: "bold", marginLeft: 10 }}>
+  Send to Email
+</button>
           <input
             ref={fileInputRef}
             type="file"
