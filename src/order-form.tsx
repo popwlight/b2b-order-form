@@ -15,7 +15,6 @@ function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
 
-  // 特例：儿童鞋（Style 结尾为 C 且 size 是 "6 - 2.5"）
   if (style?.endsWith("C") && sizeRange.trim() === "6 - 2.5") {
     const part1: string[] = [];
     const part2: string[] = [];
@@ -35,7 +34,7 @@ function expandSizes(sizeRange: string, style?: string): string[] {
   if (!match) return [sizeRange];
 
   let [start, , end] = [parseFloat(match[1]), match[2], parseFloat(match[3])];
-  if (start > end) [start, end] = [end, start]; // 处理反向范围
+  if (start > end) [start, end] = [end, start];
 
   const sizes: string[] = [];
   for (let i = start; i <= end; i += 0.5) {
@@ -62,38 +61,34 @@ function App() {
   const [customerId, setCustomerId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
   useEffect(() => {
-  axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
-    .then(res => {
-      setData(res.data);
+    axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
+      .then(res => {
+        setData(res.data);
 
-      // 设置 styleMap
-      const map: Record<string, any> = {};
-      res.data.forEach(i => {
-        if (i.Style) map[i.Style] = i;
-      });
-      setStyleMap(map);
+        const map: Record<string, any> = {};
+        res.data.forEach(i => {
+          if (i.Style) map[i.Style] = i;
+        });
+        setStyleMap(map);
 
-      // 设置 expandedGroups，只展开第一个 Collection
-      const expanded: Record<string, boolean> = {};
-      let currentGroup: string | null = null;
-      for (const row of res.data) {
-        if (row.Collection && !row.Style && !row.Desc) {
-          if (currentGroup === null) {
-            currentGroup = row.Collection;
-            expanded[row.Collection] = true; // ✅ 第一个展开
-          } else {
-            expanded[row.Collection] = false;
+        const expanded: Record<string, boolean> = {};
+        let currentGroup: string | null = null;
+        for (const row of res.data) {
+          if (row.Collection && !row.Style && !row.Desc) {
+            if (currentGroup === null) {
+              currentGroup = row.Collection;
+              expanded[row.Collection] = true;
+            } else {
+              expanded[row.Collection] = false;
+            }
           }
         }
-      }
-      setExpandedGroups(expanded);
-    });
-}, []);
-
+        setExpandedGroups(expanded);
+      });
+  }, []);
 
   const grouped: Record<string, any[]> = {};
   let currentGroup = "Ungrouped";
@@ -130,7 +125,7 @@ function App() {
     if (isNaN(val)) return size.padStart(3, "0");
     return (val * 10).toFixed(0).padStart(3, "0");
   };
- 
+
   const downloadCSV = () => {
     const rows = Object.entries(quantities)
       .filter(([_, v]) => v > 0)
@@ -146,89 +141,83 @@ function App() {
 
   const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-  const styleCode = sku.substring(0, 9); // 前9位为款号
-  const item = styleMap[styleCode];
-  return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
-}, 0);
-
-const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    const text = event.target?.result as string;
-    const lines = text.trim().split("\n");
-
-    // ✅ 判断是否为合法导出的 CSV 文件
-    const header = lines[0].trim();
-    if (header !== "SKU,Qty") {
-      alert("Invalid file format. Please import a file exported from this system.");
-      return;
-    }
-
-    const imported: Record<string, number> = {};
-    lines.slice(1).forEach(line => {
-      const [sku, qtyStr] = line.trim().split(",");
-      const qty = parseInt(qtyStr);
-      if (sku && !isNaN(qty)) {
-        imported[sku] = qty;
-      }
-    });
-
-setQuantities(imported);
-e.target.value = ""; // 重置文件选择框
-
-// 自动展开包含数量的 Collection
-setTimeout(() => {
-  const groupsToExpand: Record<string, boolean> = {};
-
-  Object.keys(imported).forEach(sku => {
     const styleCode = sku.substring(0, 9);
-    const item = data.find(i => i.Style === styleCode);
-    if (item?.Collection) {
-      groupsToExpand[item.Collection] = true;
-    }
-  });
+    const item = styleMap[styleCode];
+    return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
+  }, 0);
 
-  // 保留原有分组状态，合并展开的新组
-  setExpandedGroups(prev => ({ ...prev, ...groupsToExpand }));
-}, 0);
-  reader.readAsText(file);
-};
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.trim().split("\n");
+
+      const header = lines[0].trim();
+      if (header !== "SKU,Qty") {
+        alert("Invalid file format. Please import a file exported from this system.");
+        return;
+      }
+
+      const imported: Record<string, number> = {};
+      lines.slice(1).forEach(line => {
+        const [sku, qtyStr] = line.trim().split(",");
+        const qty = parseInt(qtyStr);
+        if (sku && !isNaN(qty)) {
+          imported[sku] = qty;
+        }
+      });
+
+      setQuantities(imported);
+      e.target.value = "";
+
+      setTimeout(() => {
+        const groupsToExpand: Record<string, boolean> = {};
+        Object.keys(imported).forEach(sku => {
+          const styleCode = sku.substring(0, 9);
+          const item = data.find(i => i.Style === styleCode);
+          if (item?.Collection) {
+            groupsToExpand[item.Collection] = true;
+          }
+        });
+        setExpandedGroups(prev => ({ ...prev, ...groupsToExpand }));
+      }, 0);
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div style={{ padding: 20 }}>
-     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-  <input
-    placeholder="Enter Customer ID"
-    value={customerId}
-    onChange={e => setCustomerId(e.target.value)}
-    onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-    style={{ padding: 5, fontSize: 16 }}
-  />
- <div>
-  <input
-    ref={fileInputRef}
-    type="file"
-    accept=".csv"
-    onChange={handleImportCSV}
-    style={{ display: "none" }}
-  />
-  <button
-    type="button"
-    onClick={() => fileInputRef.current?.click()}
-    style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}
-  >
-    Import CSV
-  </button>
-  <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
-    Download CSV
-  </button>
-</div>
-</div>
-
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <input
+          placeholder="Enter Customer ID"
+          value={customerId}
+          onChange={e => setCustomerId(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          style={{ padding: 5, fontSize: 16 }}
+        />
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImportCSV}
+            style={{ display: "none" }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}
+          >
+            Import CSV
+          </button>
+          <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
+            Download CSV
+          </button>
+        </div>
+      </div>
 
       <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
 
