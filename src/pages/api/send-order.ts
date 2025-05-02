@@ -1,6 +1,6 @@
-// pages/api/send-order.ts
+// src/pages/api/send-order.ts
+import { NextApiRequest, NextApiResponse } from "next";
 import { Resend } from "resend";
-import type { NextApiRequest, NextApiResponse } from "next";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -10,13 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { to, subject, htmlContent, csvContent } = req.body;
-  if (!to || !subject || !htmlContent || !csvContent) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
 
   try {
-    await resend.emails.send({
-      from: "B2B Order <SwingOrder@capezioanz.com>", // 替换为你在 Resend 验证过的发件邮箱
+    const result = await resend.emails.send({
+      from: "no-reply@yourdomain.com",
       to,
       subject,
       html: htmlContent,
@@ -28,9 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
     });
 
-    return res.status(200).json({ success: true });
-  } catch (err: any) {
-    console.error("Resend error", err);
-    return res.status(500).json({ error: err.message || "Failed to send email" });
+    return res.status(200).json({ message: "Email sent", result });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 }
