@@ -11,6 +11,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const [styleMap, setStyleMap] = useState<Record<string, any>>({});
+
 function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
@@ -27,7 +29,6 @@ function expandSizes(sizeRange: string, style?: string): string[] {
     }
     return [...part1, ...part2];
   }
-  const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
   const parts = sizeRange.split(",");
   if (parts.length > 1) return parts.map(s => s.trim());
