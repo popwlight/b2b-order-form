@@ -112,6 +112,13 @@ const sendEmail = async () => {
   });
   htmlTable += "</table>";
 
+console.log("Sending to Cloudflare Worker:", {
+  to: email,
+  subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+  htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
+  csvContent,
+});
+
 const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
