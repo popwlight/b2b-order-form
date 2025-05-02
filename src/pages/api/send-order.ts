@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await resend.emails.send({
-      from: "B2B Order <your@verifieddomain.com>", // 替换为你在 Resend 验证过的发件邮箱
+      from: "B2B Order <SwingOrder@capezioanz.com>", // 替换为你在 Resend 验证过的发件邮箱
       to,
       subject,
       html: htmlContent,
