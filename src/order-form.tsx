@@ -61,23 +61,7 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customerId, setCustomerId] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-  const result: Record<string, boolean> = {};
-  let foundFirst = false;
-
-  data.forEach(row => {
-    if (row.Collection && !row.Style && !row.Desc) {
-      if (!foundFirst) {
-        result[row.Collection] = true; // ✅ 第一个展开
-        foundFirst = true;
-      } else {
-        result[row.Collection] = false; // ❌ 其他默认收缩
-      }
-    }
-  });
-
-  return result;
-});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
