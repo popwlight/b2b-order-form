@@ -190,17 +190,20 @@ const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
 const fixedSize = (size: string): string => {
   if (size === "ONE" || size === "OS") return "ONE";
 
-  // 特殊处理带斜杠的尺码
-  if (size.includes("/")) {
-    const cleaned = size.replace("/", "").toUpperCase();
-    return cleaned.padStart(3, "0");
+  // 去除注释前缀（如 "Tween I" -> "I"）
+  const parts = size.trim().split(" ");
+  const rawSize = parts.length > 1 ? parts.slice(-1)[0] : size;
+
+  // 去掉斜杠（如 S/M → SM）并补足3位
+  const clean = rawSize.replace("/", "").toUpperCase();
+  const num = parseFloat(clean);
+
+  if (!isNaN(num)) {
+    return (num * 10).toFixed(0).padStart(3, "0"); // 数值类型，如 10.5 → 105
   }
 
-  const val = parseFloat(size);
-  if (isNaN(val)) return size.padStart(3, "0");
-  return (val * 10).toFixed(0).padStart(3, "0");
+  return clean.padStart(3, "0"); // 非数字，如 SM → 0SM, I → 00I
 };
-
 
   const downloadCSV = () => {
    const hasOrder = Object.values(quantities).some(qty => qty > 0);
