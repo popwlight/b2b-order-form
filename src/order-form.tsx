@@ -127,7 +127,17 @@ const csvContent = `SKU,Qty\r\n${rows.join("\r\n")}`;
 console.log("Sending to Cloudflare Worker:", {
   to: email,
   subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
-  htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
+  const now = new Date();
+const orderTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,"0")}-${now.getDate().toString().padStart(2,"0")} ${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
+
+const summaryHtml = `
+  <p><b>Order Time:</b> ${orderTime}</p>
+  <p><b>Total Quantity:</b> ${totalQty}</p>
+  <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
+`;
+
+htmlContent: `<h3>Order Summary</h3>${summaryHtml}${htmlTable}`,
+
   csvContent,
 });
 
@@ -144,7 +154,17 @@ const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
   body: JSON.stringify({
     to: email,
     subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
-    htmlContent: `<h3>Order Summary</h3>${htmlTable}`,
+    const now = new Date();
+const orderTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,"0")}-${now.getDate().toString().padStart(2,"0")} ${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
+
+const summaryHtml = `
+  <p><b>Order Time:</b> ${orderTime}</p>
+  <p><b>Total Quantity:</b> ${totalQty}</p>
+  <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
+`;
+
+htmlContent: `<h3>Order Summary</h3>${summaryHtml}${htmlTable}`,
+
     csvContent: encodeToBase64(csvContent),
   }),
 });
