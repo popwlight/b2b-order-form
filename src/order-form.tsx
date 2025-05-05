@@ -100,8 +100,8 @@ function App() {
   }, []);
 
 const sendEmail = async () => {
-    const hasOrder = Object.values(quantities).some(qty => qty > 0);
-    if (!hasOrder) {
+  const hasOrder = Object.values(quantities).some(qty => qty > 0);
+  if (!hasOrder) {
     alert("❌ No items ordered. Please enter quantities before sending.");
     return;
   }
@@ -109,11 +109,12 @@ const sendEmail = async () => {
     alert("Please enter an email address.");
     return;
   }
-    // 生成 CSV 内容
- const rows = Object.entries(quantities)
-  .filter(([_, v]) => v > 0)
-  .map(([sku, qty]) => `${sku},${qty}`);
-const csvContent = `SKU,Qty\r\n${rows.join("\r\n")}`;
+
+  // 生成 CSV 内容
+  const rows = Object.entries(quantities)
+    .filter(([_, v]) => v > 0)
+    .map(([sku, qty]) => `${sku},${qty}`);
+  const csvContent = `SKU,Qty\r\n${rows.join("\r\n")}`;
 
   // 生成 HTML 表格
   let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
@@ -124,50 +125,41 @@ const csvContent = `SKU,Qty\r\n${rows.join("\r\n")}`;
   });
   htmlTable += "</table>";
 
-console.log("Sending to Cloudflare Worker:", {
-  to: email,
-  subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+  // ✅ 加入下单时间、数量、金额
   const now = new Date();
-const orderTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,"0")}-${now.getDate().toString().padStart(2,"0")} ${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
+  const orderTime = `${now.getFullYear()}-${(now.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")} ${now
+    .getHours()
+    .toString()
+    .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-const summaryHtml = `
-  <p><b>Order Time:</b> ${orderTime}</p>
-  <p><b>Total Quantity:</b> ${totalQty}</p>
-  <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
-`;
+  const summaryHtml = `
+    <p><b>Customer ID:</b> ${customerId || "Unnamed Customer"}</p>
+    <p><b>Order Time:</b> ${orderTime}</p>
+    <p><b>Total Quantity:</b> ${totalQty}</p>
+    <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
+  `;
 
-htmlContent: `<h3>Order Summary</h3>${summaryHtml}${htmlTable}`,
+  const htmlContent = `<h3>Order Summary</h3>${summaryHtml}${htmlTable}`;
 
-  csvContent,
-});
+  const encodeToBase64 = (str: string) => {
+    const utf8Bytes = new TextEncoder().encode(str);
+    let binary = '';
+    utf8Bytes.forEach(b => (binary += String.fromCharCode(b)));
+    return btoa(binary);
+  };
 
-const encodeToBase64 = (str: string) => {
-  const utf8Bytes = new TextEncoder().encode(str);
-  let binary = '';
-  utf8Bytes.forEach(b => binary += String.fromCharCode(b));
-  return btoa(binary);
-};
-
-const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    to: email,
-    subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
-    const now = new Date();
-const orderTime = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,"0")}-${now.getDate().toString().padStart(2,"0")} ${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
-
-const summaryHtml = `
-  <p><b>Order Time:</b> ${orderTime}</p>
-  <p><b>Total Quantity:</b> ${totalQty}</p>
-  <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
-`;
-
-htmlContent: `<h3>Order Summary</h3>${summaryHtml}${htmlTable}`,
-
-    csvContent: encodeToBase64(csvContent),
-  }),
-});
+  const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: email,
+      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+      htmlContent,
+      csvContent: encodeToBase64(csvContent),
+    }),
+  });
 
   const result = await res.json();
   if (res.ok) {
