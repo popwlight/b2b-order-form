@@ -312,7 +312,7 @@ setTimeout(() => {
         alt="Logo"
         style={{ height: 30.645, marginRight: 10 }}
       />
-      <h1 style={{ fontSize: 20 }}>B2B Order Form</h1>
+      <h1 style={{ fontSize: 20 }}>Capezio Summer 2026 Order Form</h1>
     </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <input
