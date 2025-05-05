@@ -187,12 +187,20 @@ const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
     return `${style}${colour}${paddedSize}`;
   };
 
-  const fixedSize = (size: string): string => {
-    if (size === "ONE" || size === "OS") return "ONE";
-    const val = parseFloat(size);
-    if (isNaN(val)) return size.padStart(3, "0");
-    return (val * 10).toFixed(0).padStart(3, "0");
-  };
+const fixedSize = (size: string): string => {
+  if (size === "ONE" || size === "OS") return "ONE";
+
+  // 特殊处理带斜杠的尺码
+  if (size.includes("/")) {
+    const cleaned = size.replace("/", "").toUpperCase();
+    return cleaned.padStart(3, "0");
+  }
+
+  const val = parseFloat(size);
+  if (isNaN(val)) return size.padStart(3, "0");
+  return (val * 10).toFixed(0).padStart(3, "0");
+};
+
 
   const downloadCSV = () => {
    const hasOrder = Object.values(quantities).some(qty => qty > 0);
