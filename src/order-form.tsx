@@ -141,7 +141,14 @@ const sendEmail = async () => {
     <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
   `;
 
-  const htmlContent = `<h3>Order Summary</h3>${summaryHtml}${htmlTable}`;
+  const htmlContent = `
+  <div style="display: flex; align-items: center; margin-bottom: 20px;">
+    <img src="https://www.capezio.au/static/version1745830218/frontend/Aws/capezio/en_AU/images/logo.svg" alt="Logo" style="height: 20.64px; margin-right: 20px;" />
+    <h3 style="margin: 0;">Order Summary</h3>
+  </div>
+  ${summaryHtml}
+  ${htmlTable}
+`;
 
   const encodeToBase64 = (str: string) => {
     const utf8Bytes = new TextEncoder().encode(str);
@@ -299,6 +306,14 @@ setTimeout(() => {
 
   return (
     <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
+      <img
+        src="https://www.capezio.au/static/version1745830218/frontend/Aws/capezio/en_AU/images/logo.svg"
+        alt="Logo"
+        style={{ height: 30.645, marginRight: 10 }}
+      />
+      <h1 style={{ fontSize: 20 }}>B2B Order Form</h1>
+    </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <input
           placeholder="Enter Customer ID"
