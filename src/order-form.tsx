@@ -15,6 +15,14 @@ function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
 
+  // ✅ 处理特殊尺码注释如 "Tween: I, M, L"
+  const specialMatch = sizeRange.match(/^([^:]+):\s*(.+)$/);
+  if (specialMatch) {
+    const prefix = specialMatch[1].trim();
+    const sizes = specialMatch[2].split(",").map(s => s.trim());
+    return sizes.map(s => `${prefix} ${s}`);
+  }
+
   if (style?.endsWith("C") && sizeRange.trim() === "6 - 2.5") {
     const part1: string[] = [];
     const part2: string[] = [];
