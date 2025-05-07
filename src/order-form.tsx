@@ -45,7 +45,7 @@ function expandSizes(sizeRange: string, style?: string): string[] {
   let [start, , end] = [parseFloat(match[1]), match[2], parseFloat(match[3])];
   if (start > end) [start, end] = [end, start];
 
-  const onlyWholeSizes = sizeRange.toLowerCase().includes("whole size");
+  const onlyWholeSizes = sizeRange.toLowerCase().includes("whole sizes only");
   const sizes: string[] = [];
 
   for (let i = start; i <= end; i += 0.5) {
