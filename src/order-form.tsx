@@ -10,6 +10,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { useSearchParams } from 'react-router-dom'; 
 
 function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
@@ -64,8 +65,7 @@ function isShoe(style: string) {
 }
 
 function App() {
-  import { useSearchParams } from 'react-router-dom'; // 若你用的是 React Router
-// 或者使用 URLSearchParams，如果没有用 react-router
+  
 
 const searchParams = new URLSearchParams(window.location.search);
 const initialSheet = searchParams.get("sheet") || "Sheet1";
