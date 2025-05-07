@@ -64,6 +64,15 @@ function isShoe(style: string) {
 }
 
 function App() {
+  import { useSearchParams } from 'react-router-dom'; // 若你用的是 React Router
+// 或者使用 URLSearchParams，如果没有用 react-router
+
+const searchParams = new URLSearchParams(window.location.search);
+const initialSheet = searchParams.get("sheet") || "Sheet1";
+const [sheetName, setSheetName] = useState(initialSheet);
+
+const sheetOptions = ["Sheet1", "Sheet2", "Sheet3"]; // 替换为你实际的 sheet 名字列表
+
   const [data, setData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customerId, setCustomerId] = useState("");
@@ -72,32 +81,32 @@ function App() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
-  useEffect(() => {
-    axios.get("https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/Sheet1")
-      .then(res => {
-        setData(res.data);
+useEffect(() => {
+  axios.get(`https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/${sheetName}`)
+    .then(res => {
+      setData(res.data);
 
-        const map: Record<string, any> = {};
-        res.data.forEach(i => {
-          if (i.Style) map[i.Style] = i;
-        });
-        setStyleMap(map);
+      const map: Record<string, any> = {};
+      res.data.forEach(i => {
+        if (i.Style) map[i.Style] = i;
+      });
+      setStyleMap(map);
 
-        const expanded: Record<string, boolean> = {};
-        let currentGroup: string | null = null;
-        for (const row of res.data) {
-          if (row.Collection && !row.Style && !row.Desc) {
-            if (currentGroup === null) {
-              currentGroup = row.Collection;
-              expanded[row.Collection] = true;
-            } else {
-              expanded[row.Collection] = false;
-            }
+      const expanded: Record<string, boolean> = {};
+      let currentGroup: string | null = null;
+      for (const row of res.data) {
+        if (row.Collection && !row.Style && !row.Desc) {
+          if (currentGroup === null) {
+            currentGroup = row.Collection;
+            expanded[row.Collection] = true;
+          } else {
+            expanded[row.Collection] = false;
           }
         }
-        setExpandedGroups(expanded);
-      });
-  }, []);
+      }
+      setExpandedGroups(expanded);
+    });
+}, [sheetName]);
 
 const sendEmail = async () => {
   const hasOrder = Object.values(quantities).some(qty => qty > 0);
@@ -314,6 +323,25 @@ setTimeout(() => {
       />
       <h1 style={{ fontSize: 20 }}>Capezio Summer 2026 Order Form</h1>
     </div>
+      <div style={{ marginBottom: 10 }}>
+  <label><b>Choose Sheet:</b> </label>
+  <select
+    value={sheetName}
+    onChange={(e) => {
+      const newSheet = e.target.value;
+      setSheetName(newSheet);
+      const params = new URLSearchParams(window.location.search);
+      params.set("sheet", newSheet);
+      window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+    }}
+    style={{ fontSize: 16, padding: 4 }}
+  >
+    {sheetOptions.map(name => (
+      <option key={name} value={name}>{name}</option>
+    ))}
+  </select>
+</div>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <input
           placeholder="Enter Customer ID"
