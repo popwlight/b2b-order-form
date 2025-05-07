@@ -330,7 +330,7 @@ setTimeout(() => {
       <h1 style={{ fontSize: 20 }}>Capezio Summer 2026 Order Form</h1>
     </div>
       <div style={{ marginBottom: 10 }}>
-  <label><b>Choose Sheet:</b> </label>
+  <label><b>Choose Secion:</b> </label>
   <select
     value={sheetName}
     onChange={(e) => {
