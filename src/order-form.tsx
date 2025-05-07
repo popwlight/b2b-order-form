@@ -45,12 +45,18 @@ function expandSizes(sizeRange: string, style?: string): string[] {
   let [start, , end] = [parseFloat(match[1]), match[2], parseFloat(match[3])];
   if (start > end) [start, end] = [end, start];
 
+  const onlyWholeSizes = sizeRange.toLowerCase().includes("whole size");
   const sizes: string[] = [];
+
   for (let i = start; i <= end; i += 0.5) {
-    sizes.push(i % 1 === 0 ? i.toString() : i.toFixed(1));
+    const isWhole = i % 1 === 0;
+    if (onlyWholeSizes && !isWhole) continue;
+    sizes.push(isWhole ? i.toString() : i.toFixed(1));
   }
+
   return sizes;
 }
+
 
 function expandWidths(width: string): string[] {
   return width ? width.split(",").map(w => w.trim()) : [""];
