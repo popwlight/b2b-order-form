@@ -24,37 +24,50 @@ function expandSizes(sizeRange: string, style?: string): string[] {
     return sizes.map(s => `${prefix} ${s}`);
   }
 
-  if (style?.endsWith("C") && sizeRange.trim() === "6 - 2.5") {
-    const part1: string[] = [];
-    const part2: string[] = [];
-    for (let i = 6; i <= 13.5; i += 0.5) {
-      part1.push(i % 1 === 0 ? `${i}` : `${i.toFixed(1)}`);
+  // ✅ C结尾的款式 + 环形尺码，如 "10 - 3"
+  if (style?.endsWith("C")) {
+    const match = sizeRange.match(/(\d+(\.\d+)?)\s*-\s*(\d+(\.\d+)?)/);
+    if (match) {
+      const start = parseFloat(match[1]);
+      const end = parseFloat(match[3]);
+      const part1: string[] = [];
+      const part2: string[] = [];
+
+      for (let i = start; i <= 13.5; i += 0.5) {
+        part1.push(i % 1 === 0 ? `${i}` : `${i.toFixed(1)}`);
+      }
+      for (let i = 1; i <= end; i += 0.5) {
+        part2.push(i % 1 === 0 ? `${i}` : `${i.toFixed(1)}`);
+      }
+      return [...part1, ...part2];
     }
-    for (let i = 1; i <= 2.5; i += 0.5) {
-      part2.push(i % 1 === 0 ? `${i}` : `${i.toFixed(1)}`);
-    }
-    return [...part1, ...part2];
   }
 
+  // ✅ 普通逗号分隔格式
   const parts = sizeRange.split(",");
   if (parts.length > 1) return parts.map(s => s.trim());
 
+  // ✅ 普通范围格式，如 "4 - 12"
   const match = sizeRange.match(/(\d+(\.\d+)?)\s*-\s*(\d+(\.\d+)?)/);
-  if (!match) return [sizeRange];
+  if (match) {
+    let start = parseFloat(match[1]);
+    let end = parseFloat(match[3]);
+    if (start > end) [start, end] = [end, start];
 
-  let [start, , end] = [parseFloat(match[1]), match[2], parseFloat(match[3])];
-  if (start > end) [start, end] = [end, start];
+    const onlyWholeSizes = sizeRange.toLowerCase().includes("whole sizes only");
+    const sizes: string[] = [];
 
-  const onlyWholeSizes = sizeRange.toLowerCase().includes("whole sizes only");
-  const sizes: string[] = [];
+    for (let i = start; i <= end; i += 0.5) {
+      const isWhole = i % 1 === 0;
+      if (onlyWholeSizes && !isWhole) continue;
+      sizes.push(isWhole ? `${i}` : i.toFixed(1));
+    }
 
-  for (let i = start; i <= end; i += 0.5) {
-    const isWhole = i % 1 === 0;
-    if (onlyWholeSizes && !isWhole) continue;
-    sizes.push(isWhole ? i.toString() : i.toFixed(1));
+    return sizes;
   }
 
-  return sizes;
+  // 默认返回原值
+  return [sizeRange];
 }
 
 
