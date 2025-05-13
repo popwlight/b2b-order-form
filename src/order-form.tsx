@@ -234,7 +234,7 @@ const sendEmail = async () => {
     return `${style}${colour}${paddedSize}`;
   };
 
-function fixedSize(size: string): string {
+const fixedSize = (size: string): string => {
   if (size === "ONE" || size === "OS") return "ONE";
 
   // 去除前缀（如 "Tween I" -> "I"）
