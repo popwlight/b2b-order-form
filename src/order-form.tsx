@@ -234,30 +234,36 @@ const sendEmail = async () => {
     return `${style}${colour}${paddedSize}`;
   };
 
-const fixedSize = (size: string): string => {
+function fixedSize(size: string): string {
   if (size === "ONE" || size === "OS") return "ONE";
 
-  // 去除注释前缀（如 "Tween I" -> "I"）
+  // 去除前缀（如 "Tween I" -> "I"）
   const parts = size.trim().split(" ");
   const rawSize = parts.length > 1 ? parts.slice(-1)[0] : size;
 
-  // 去掉斜杠（如 S/M → SM）并补足3位
+  // 去掉斜杠（如 S/M → SM）并转大写
   const clean = rawSize.replace("/", "").toUpperCase();
-  const num = parseFloat(clean);
 
-  if (!isNaN(num)) {
-    return (num * 10).toFixed(0).padStart(3, "0"); // 数值类型，如 10.5 → 105
+  // 如果是合法数字（整数或小数）
+  if (/^\d+(\.\d+)?$/.test(clean)) {
+    return (parseFloat(clean) * 10).toFixed(0).padStart(3, "0");
   }
-  // ✅ 特别处理服装尺码 1X、2X → 01X、02X
+
+  // 特别处理如 1X → 01X，2X → 02X
   if (clean.match(/^\d+X$/)) {
     const match = clean.match(/^(\d+)X$/);
-    const transformed = match ? match[1].padStart(2, "0") + "X" : clean;
-    return transformed.length === 3 ? transformed : transformed.padStart(3, "0");
+    return match ? match[1].padStart(2, "0") + "X" : clean.padStart(3, "0");
   }
 
+  // 如果是长度3的非数字（如 1X2），保持原样
+  if (clean.length === 3 && !/^\d+(\.\d+)?$/.test(clean)) {
+    return clean;
+  }
 
-  return clean.padStart(3, "0"); // 非数字，如 SM → 0SM, I → 00I
-};
+  // 默认前补0至3位
+  return clean.padStart(3, "0");
+}；
+
 
   const downloadCSV = () => {
    const hasOrder = Object.values(quantities).some(qty => qty > 0);
