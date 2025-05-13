@@ -262,7 +262,7 @@ const fixedSize = (size: string): string => {
 
   // 默认前补0至3位
   return clean.padStart(3, "0");
-}；
+};
 
 
   const downloadCSV = () => {
