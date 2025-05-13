@@ -248,6 +248,12 @@ const fixedSize = (size: string): string => {
   if (!isNaN(num)) {
     return (num * 10).toFixed(0).padStart(3, "0"); // 数值类型，如 10.5 → 105
   }
+  // ✅ 特别处理服装尺码 1X、2X → 01X、02X
+if (clean.match(/^\d+X$/)) {
+  const match = clean.match(/^(\d+)X$/);
+  return match ? match[1].padStart(2, "0") + "X" : clean.padStart(3, "0");
+}
+
 
   return clean.padStart(3, "0"); // 非数字，如 SM → 0SM, I → 00I
 };
