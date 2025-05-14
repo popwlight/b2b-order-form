@@ -12,6 +12,8 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useSearchParams } from 'react-router-dom'; 
 
+const globalStyleMap: Record<string, any> = {};
+
 function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
@@ -114,11 +116,15 @@ res.data.forEach(i => {
     currentCollectionGroup = i.Collection;
   }
 
-  // 如果是正常产品行
+// 如果是正常产品行
   if (i.Style) {
     map[i.Style] = {
       ...i,
-      Group: currentCollectionGroup, // ✅ 加入真实 Collection 分组名
+      Group: currentCollectionGroup, // ✅ 当前 sheet 内使用
+    };
+    globalStyleMap[i.Style] = {
+      ...i,
+      Group: currentCollectionGroup, // ✅ 所有 sheet 累积缓存
     };
   }
 });
@@ -153,7 +159,7 @@ const sendEmail = async () => {
   }
 
   // 生成 CSV 内容
-const csvContent = generateGroupedCSV(quantities, styleMap);
+const csvContent = generateGroupedCSV(quantities, globalStyleMap);
 
   // 生成 HTML 表格
 //  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
@@ -171,7 +177,7 @@ const grouped: Record<string, { rows: string[], subtotal: number, qty: number }>
 Object.entries(quantities).forEach(([sku, qty]) => {
   if (qty > 0) {
     const styleCode = sku.substring(0, 9);
-    const item = styleMap[styleCode];
+    const item = globalStyleMap[styleCode];
     const group = item?.Group || "Uncategorized";
     const price = parseFloat(item?.Wholesale) || 0;
 
@@ -384,21 +390,11 @@ setTimeout(() => {
   setExpandedGroups(prev => {
     const updated = { ...prev };
     Object.keys(imported).forEach(sku => {
-      const item = data.find(i => {
-        const sizes = expandSizes(i.Size, i.Style);
-        const widths = expandWidths(i.Width);
-        const colours = expandColours(i.Colours);
-        return colours.some(colour =>
-          widths.some(width =>
-            sizes.some(size =>
-              generateSKU(i, width, colour, size) === sku
-            )
-          )
-        );
-      });
-      if (item?.Collection) {
-        updated[item.Collection] = true;
-      }
+   const styleCode = sku.substring(0, 9);
+const item = globalStyleMap[styleCode];
+if (item?.Group) {
+  updated[item.Group] = true;
+}
     });
     return updated;
   });
