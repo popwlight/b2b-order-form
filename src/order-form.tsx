@@ -14,7 +14,7 @@ import { useSearchParams } from 'react-router-dom';
 
 const globalStyleMap: Record<string, any> = {};
 
-function applyWholesaleDiscountIfNeeded(map: Record<string, any>) {
+function applyWholesaleDiscountIfNeeded(map: Record<string, any>, customerId: string) {
   if (customerId === "NZ1008") {
     Object.keys(map).forEach(key => {
       const item = map[key];
@@ -146,7 +146,7 @@ res.data.forEach(i => {
   }
 });
 
-applyWholesaleDiscountIfNeeded(map);
+applyWholesaleDiscountIfNeeded(map, customerId);
 setStyleMap(map);
 
 
@@ -166,11 +166,10 @@ setStyleMap(map);
     });
 }, [sheetName]);
 
-  useEffect(() => {
+useEffect(() => {
   if (Object.keys(styleMap).length > 0) {
-    // 复制一个新的 map，防止直接修改原 state 导致 React 不刷新
     const clonedMap = JSON.parse(JSON.stringify(styleMap));
-    applyWholesaleDiscountIfNeeded(clonedMap);
+    applyWholesaleDiscountIfNeeded(clonedMap, customerId);
     setStyleMap(clonedMap);
   }
 }, [customerId]);
