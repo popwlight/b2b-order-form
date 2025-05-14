@@ -144,12 +144,24 @@ const groupedEntries: Record<string, [string, number][]> = {};
 Object.entries(quantities)
   .filter(([_, qty]) => qty > 0)
   .forEach(([sku, qty]) => {
-    const styleCode = sku.substring(0, 9);
-    const item = styleMap[styleCode];
+    const item = data.find(i => {
+      const sizes = expandSizes(i.Size, i.Style);
+      const widths = expandWidths(i.Width);
+      const colours = expandColours(i.Colours);
+      return colours.some(colour =>
+        widths.some(width =>
+          sizes.some(size =>
+            generateSKU(i, width, colour, size) === sku
+          )
+        )
+      );
+    });
+
     const group = item?.Collection || "Ungrouped";
     if (!groupedEntries[group]) groupedEntries[group] = [];
     groupedEntries[group].push([sku, qty]);
   });
+
 
 // CSV 构建
 let csvRows: string[] = [];
