@@ -122,7 +122,19 @@ useEffect(() => {
 
   const map: Record<string, any> = {};
   final.forEach(i => {
-    if (i.Style) map[i.Style] = i;
+    if (i.Style) {
+      const widths = expandWidths(i.Width);
+      const colours = expandColours(i.Colours);
+      const sizes = expandSizes(i.Size, i.Style);
+      for (const colour of colours) {
+        for (const width of widths.length ? widths : ['']) {
+          for (const size of sizes) {
+            const sku = generateSKU(i, width, colour, size);
+            map[sku] = i;
+          }
+        }
+      }
+    }
   });
   setStyleMap(map);
 
@@ -172,7 +184,8 @@ Object.entries(quantities)
         )
       );
     });
-
+    
+    const item = styleMap[sku];
     const group = item?.Collection || "Ungrouped";
     if (!groupedEntries[group]) groupedEntries[group] = [];
     groupedEntries[group].push([sku, qty]);
