@@ -186,7 +186,7 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
   htmlTable += `<h4>${group}</h4>`;
   htmlTable += "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
   htmlTable += rows.join("");
-  htmlTable += `<tr><td><b>Subtotal Qty:</b> ${grouped[group].qty}</td><td><b>$${subtotal.toFixed(2)}</b></td></tr>`;
+  htmlTable += `<tr><td><b>Subtotal:</b>$${subtotal.toFixed(2)}</td><td><b>${grouped[group].qty}</b></td></tr>`;
   htmlTable += "</table><br/>";
 });
 
