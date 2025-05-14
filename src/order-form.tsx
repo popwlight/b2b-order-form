@@ -128,6 +128,21 @@ res.data.forEach(i => {
     };
   }
 });
+if (customerId === "NZ1008") {
+  Object.keys(map).forEach(key => {
+    const item = map[key];
+    if (item?.Wholesale) {
+      item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
+    }
+  });
+  Object.keys(globalStyleMap).forEach(key => {
+    const item = globalStyleMap[key];
+    if (item?.Wholesale) {
+      item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
+    }
+  });
+}
+
 setStyleMap(map);
 
 
@@ -146,29 +161,6 @@ setStyleMap(map);
       setExpandedGroups(expanded);
     });
 }, [sheetName]);
-
-useEffect(() => {
-  if (customerId === "NZ1008") {
-    setStyleMap(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(key => {
-        const item = updated[key];
-        if (item?.Wholesale) {
-          item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
-        }
-      });
-      return updated;
-    });
-
-    // 同时更新 globalStyleMap 中的批发价（用于导出和统计）
-    Object.keys(globalStyleMap).forEach(key => {
-      const item = globalStyleMap[key];
-      if (item?.Wholesale) {
-        item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
-      }
-    });
-  }
-}, [customerId]);
 
 const sendEmail = async () => {
   const hasOrder = Object.values(quantities).some(qty => qty > 0);
