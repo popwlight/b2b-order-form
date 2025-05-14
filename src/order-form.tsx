@@ -172,20 +172,20 @@ const groupedEntries: Record<string, [string, number][]> = {};
 Object.entries(quantities)
   .filter(([_, qty]) => qty > 0)
   .forEach(([sku, qty]) => {
-    const item = data.find(i => {
-      const sizes = expandSizes(i.Size, i.Style);
-      const widths = expandWidths(i.Width);
-      const colours = expandColours(i.Colours);
-      return colours.some(colour =>
-        widths.some(width =>
-          sizes.some(size =>
-            generateSKU(i, width, colour, size) === sku
-          )
-        )
-      );
-    });
+const item = styleMap[sku] || data.find(i => {
+  const sizes = expandSizes(i.Size, i.Style);
+  const widths = expandWidths(i.Width);
+  const colours = expandColours(i.Colours);
+  return colours.some(colour =>
+    widths.some(width =>
+      sizes.some(size =>
+        generateSKU(i, width, colour, size) === sku
+      )
+    )
+  );
+});
+
     
-    const item = styleMap[sku];
     const group = item?.Collection || "Ungrouped";
     if (!groupedEntries[group]) groupedEntries[group] = [];
     groupedEntries[group].push([sku, qty]);
