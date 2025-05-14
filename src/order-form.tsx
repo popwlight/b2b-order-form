@@ -14,6 +14,23 @@ import { useSearchParams } from 'react-router-dom';
 
 const globalStyleMap: Record<string, any> = {};
 
+function applyWholesaleDiscountIfNeeded(map: Record<string, any>) {
+  if (customerId === "NZ1008") {
+    Object.keys(map).forEach(key => {
+      const item = map[key];
+      if (item?.Wholesale) {
+        item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
+      }
+    });
+    Object.keys(globalStyleMap).forEach(key => {
+      const item = globalStyleMap[key];
+      if (item?.Wholesale) {
+        item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
+      }
+    });
+  }
+}
+
 function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
   if (fixedSizes.includes(sizeRange)) return ["ONE"];
@@ -128,21 +145,8 @@ res.data.forEach(i => {
     };
   }
 });
-if (customerId === "NZ1008") {
-  Object.keys(map).forEach(key => {
-    const item = map[key];
-    if (item?.Wholesale) {
-      item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
-    }
-  });
-  Object.keys(globalStyleMap).forEach(key => {
-    const item = globalStyleMap[key];
-    if (item?.Wholesale) {
-      item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
-    }
-  });
-}
 
+applyWholesaleDiscountIfNeeded(map);
 setStyleMap(map);
 
 
@@ -161,6 +165,15 @@ setStyleMap(map);
       setExpandedGroups(expanded);
     });
 }, [sheetName]);
+
+  useEffect(() => {
+  if (Object.keys(styleMap).length > 0) {
+    // 复制一个新的 map，防止直接修改原 state 导致 React 不刷新
+    const clonedMap = JSON.parse(JSON.stringify(styleMap));
+    applyWholesaleDiscountIfNeeded(clonedMap);
+    setStyleMap(clonedMap);
+  }
+}, [customerId]);
 
 const sendEmail = async () => {
   const hasOrder = Object.values(quantities).some(qty => qty > 0);
