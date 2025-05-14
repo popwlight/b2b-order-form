@@ -153,10 +153,7 @@ const sendEmail = async () => {
   }
 
   // 生成 CSV 内容
-  const rows = Object.entries(quantities)
-    .filter(([_, v]) => v > 0)
-    .map(([sku, qty]) => `${sku},${qty}`);
-  const csvContent = `SKU,Qty\r\n${rows.join("\r\n")}`;
+const csvContent = generateGroupedCSV(quantities, styleMap);
 
   // 生成 HTML 表格
 //  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
