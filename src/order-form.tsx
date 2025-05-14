@@ -105,11 +105,25 @@ useEffect(() => {
     .then(res => {
       setData(res.data);
 
-      const map: Record<string, any> = {};
-      res.data.forEach(i => {
-        if (i.Style) map[i.Style] = i;
-      });
-      setStyleMap(map);
+const map: Record<string, any> = {};
+let currentGroup: string | null = null;
+
+res.data.forEach(i => {
+  // 如果是 Collection 分组标题行（其余字段都为空）
+  if (i.Collection && !i.Style && !i.Desc) {
+    currentGroup = i.Collection;
+  }
+
+  // 如果是正常产品行
+  if (i.Style) {
+    map[i.Style] = {
+      ...i,
+      Group: currentGroup, // ✅ 加入真实 Collection 分组名
+    };
+  }
+});
+setStyleMap(map);
+
 
       const expanded: Record<string, boolean> = {};
       let currentGroup: string | null = null;
@@ -160,7 +174,7 @@ Object.entries(quantities).forEach(([sku, qty]) => {
   if (qty > 0) {
     const styleCode = sku.substring(0, 9);
     const item = styleMap[styleCode];
-    const group = item?.Collection || "Uncategorized";
+    const group = item?.Group || "Uncategorized";
     const price = parseFloat(item?.Wholesale) || 0;
 
     if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
@@ -296,7 +310,7 @@ function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record
     if (qty > 0) {
       const styleCode = sku.substring(0, 9); // 保持原SKU格式
       const item = styleMap[styleCode];
-      const group = item?.Collection || "Uncategorized";
+      const group = item?.Group || "Uncategorized";
       const price = parseFloat(item?.Wholesale) || 0;
 
       if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
