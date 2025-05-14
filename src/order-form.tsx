@@ -103,29 +103,43 @@ const sheetOptions = ["Summer 2026", "Limited Fashion"]; // 替换为你实际�
 useEffect(() => {
   axios.get(`https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/${sheetName}`)
     .then(res => {
-      setData(res.data);
+      const raw = res.data;
+      const final: any[] = [];
 
+      let currentCollection = "";
+      for (const row of raw) {
+        if (row.Collection && !row.Style && !row.Desc) {
+          // 是标题行，更新当前分组
+          currentCollection = row.Collection;
+        } else if (row.Style) {
+          // 是产品行，加上当前Collection
+          final.push({ ...row, Collection: row.Collection || currentCollection });
+        }
+      }
+
+      setData(final);
+
+      // 构建 styleMap 用于 SKU 匹配时引用
       const map: Record<string, any> = {};
-      res.data.forEach(i => {
+      final.forEach(i => {
         if (i.Style) map[i.Style] = i;
       });
       setStyleMap(map);
 
+      // 设置默认展开状态
       const expanded: Record<string, boolean> = {};
-      let currentGroup: string | null = null;
-      for (const row of res.data) {
-        if (row.Collection && !row.Style && !row.Desc) {
-          if (currentGroup === null) {
-            currentGroup = row.Collection;
-            expanded[row.Collection] = true;
-          } else {
-            expanded[row.Collection] = false;
-          }
+      final.forEach(row => {
+        if (row.Collection && !expanded[row.Collection]) {
+          expanded[row.Collection] = false;
         }
-      }
+      });
+      const firstGroup = Object.keys(expanded)[0];
+      if (firstGroup) expanded[firstGroup] = true;
+
       setExpandedGroups(expanded);
     });
 }, [sheetName]);
+
 
 const sendEmail = async () => {
   const hasOrder = Object.values(quantities).some(qty => qty > 0);
