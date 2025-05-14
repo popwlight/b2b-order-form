@@ -147,125 +147,73 @@ setExpandedGroups(expanded);
 }, \[sheetName]);
 
 const sendEmail = async () => {
-const hasOrder = Object.values(quantities).some(qty => qty > 0);
-if (!hasOrder) {
-alert("❌ No items ordered. Please enter quantities before sending.");
-return;
-}
-if (!email) {
-alert("Please enter an email address.");
-return;
-}
+  const hasOrder = Object.values(quantities).some(qty => qty > 0);
+  if (!hasOrder) {
+    alert("❌ No items ordered. Please enter quantities before sending.");
+    return;
+  }
+  if (!email) {
+    alert("Please enter an email address.");
+    return;
+  }
 
-// ✅ 只声明一次 groupedEntries
-const groupedEntries: Record\<string, \[string, number]\[]> = {};
+  // ✅ 改为平铺 entries，不再分组
+  const entries = Object.entries(quantities).filter(([, qty]) => qty > 0);
 
-Object.entries(quantities)
-.filter((\[\_, qty]) => qty > 0)
-.forEach((\[sku, qty]) => {
-const item = data.find(i => {
-const sizes = expandSizes(i.Size, i.Style);
-const widths = expandWidths(i.Width);
-const colours = expandColours(i.Colours);
-return colours.some(colour =>
-widths.some(width =>
-sizes.some(size =>
-generateSKU(i, width, colour, size) === sku
-)
-)
-);
-});
+  const csvRows: string[] = ["SKU,Qty", ...entries.map(([sku, qty]) => `${sku},${qty}`)];
+  const csvContent = csvRows.join("\n");
 
-```
-const group = item?.Collection || "Ungrouped";
-if (!groupedEntries[group]) groupedEntries[group] = [];
-groupedEntries[group].push([sku, qty]);
-```
+  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse: collapse;'>";
+  htmlTable += "<tr><th>SKU</th><th>Qty</th></tr>";
+  entries.forEach(([sku, qty]) => {
+    htmlTable += `<tr><td>${sku}</td><td>${qty}</td></tr>`;
+  });
+  htmlTable += "</table>";
 
-});
+  const now = new Date();
+  const orderTime = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-// CSV 构建
-let csvRows: string\[] = \[];
-csvRows.push("SKU,Qty");
-
-Object.entries(groupedEntries).forEach((\[group, entries]) => {
-csvRows.push(`\n${group}`);
-entries.forEach((\[sku, qty]) => {
-csvRows.push(`${sku},${qty}`);
-});
-});
-const csvContent = csvRows.join("\n");
-
-// HTML 构建
-let htmlTable = "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse: collapse;'>";
-htmlTable += "<tr><th>SKU</th><th>Qty</th></tr>";
-Object.entries(groupedEntries).forEach((\[group, entries]) => {
-htmlTable += `<tr><td colspan="2" style="font-weight:bold; background:#eee;">${group}</td></tr>`;
-entries.forEach((\[sku, qty]) => {
-htmlTable += `<tr><td>${sku}</td><td>${qty}</td></tr>`;
-});
-});
-htmlTable += "</table>";
-
-// ✅ 加入下单时间、数量、金额
-const now = new Date();
-const orderTime = `${now.getFullYear()}-${(now.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")} ${now
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-
-const summaryHtml = `     <p><b>Customer ID:</b> ${customerId || "Unnamed Customer"}</p>     <p><b>Order Time:</b> ${orderTime}</p>     <p><b>Total Quantity:</b> ${totalQty}</p>     <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
+  const summaryHtml = `
+    <p><b>Customer ID:</b> ${customerId || "Unnamed Customer"}</p>
+    <p><b>Order Time:</b> ${orderTime}</p>
+    <p><b>Total Quantity:</b> ${totalQty}</p>
+    <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
   `;
 
-const htmlContent = \`
+  const htmlContent = `
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+      <img src="https://www.capezio.au/static/version1745830218/frontend/Aws/capezio/en_AU/images/logo.svg" alt="Logo" style="height: 20.64px; margin-right: 20px;" />
+      <h3 style="margin: 0;">Order Summary</h3>
+    </div>
+    ${summaryHtml}
+    ${htmlTable}
+  `;
 
-  <div style="display: flex; align-items: center; margin-bottom: 20px;">
-    <img src="https://www.capezio.au/static/version1745830218/frontend/Aws/capezio/en_AU/images/logo.svg" alt="Logo" style="height: 20.64px; margin-right: 20px;" />
-    <h3 style="margin: 0;">Order Summary</h3>
-  </div>
-  ${summaryHtml}
-  ${htmlTable}
-`;
+  const encodeToBase64 = (str: string) => {
+    const utf8Bytes = new TextEncoder().encode(str);
+    let binary = '';
+    utf8Bytes.forEach(b => (binary += String.fromCharCode(b)));
+    return btoa(binary);
+  };
 
-const encodeToBase64 = (str: string) => {
-const utf8Bytes = new TextEncoder().encode(str);
-let binary = '';
-utf8Bytes.forEach(b => (binary += String.fromCharCode(b)));
-return btoa(binary);
+  const res = await fetch("https://bmaswingemail.capezioaustralia.workers.dev", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: email,
+      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+      htmlContent,
+      csvContent: encodeToBase64(csvContent),
+    }),
+  });
+
+  const result = await res.json();
+  if (res.ok) {
+    alert("✅ Email sent successfully.");
+  } else {
+    alert("❌ Failed to send: " + result.error);
+  }
 };
-
-const res = await fetch("[https://bmaswingemail.capezioaustralia.workers.dev](https://bmaswingemail.capezioaustralia.workers.dev)", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-to: email,
-subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
-htmlContent,
-csvContent: encodeToBase64(csvContent),
-}),
-});
-
-const result = await res.json();
-if (res.ok) {
-alert("✅ Email sent successfully.");
-} else {
-alert("❌ Failed to send: " + result.error);
-}
-};
-
-const grouped: Record\<string, any\[]> = {};
-let currentGroup = "Ungrouped";
-data.forEach(row => {
-if (row\.Collection && !row\.Style && !row\.Desc) {
-currentGroup = row\.Collection;
-if (!grouped\[currentGroup]) grouped\[currentGroup] = \[];
-} else if (row\.Style && row\.Wholesale) {
-if (!grouped\[currentGroup]) grouped\[currentGroup] = \[];
-grouped\[currentGroup].push(row);
-}
-});
 
 const handleChange = (sku: string, val: string) => {
 const qty = parseInt(val);
