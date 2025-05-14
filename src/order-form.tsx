@@ -18,18 +18,21 @@ function applyWholesaleDiscountIfNeeded(map: Record<string, any>, customerId: st
   if (customerId === "NZ1008") {
     Object.keys(map).forEach(key => {
       const item = map[key];
-      if (item?.Wholesale) {
+      if (item?.Wholesale && !item._discounted) {
         item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
+        item._discounted = true;
       }
     });
     Object.keys(globalStyleMap).forEach(key => {
       const item = globalStyleMap[key];
-      if (item?.Wholesale) {
+      if (item?.Wholesale && !item._discounted) {
         item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
+        item._discounted = true;
       }
     });
   }
 }
+
 
 function expandSizes(sizeRange: string, style?: string): string[] {
   const fixedSizes = ["ONE", "OS"];
@@ -167,12 +170,23 @@ setStyleMap(map);
 }, [sheetName]);
 
 useEffect(() => {
-  if (Object.keys(styleMap).length > 0) {
-    const clonedMap = JSON.parse(JSON.stringify(styleMap));
-    applyWholesaleDiscountIfNeeded(clonedMap, customerId);
-    setStyleMap(clonedMap);
-  }
+  // 如果 customerId 为空，就不处理
+  if (!customerId || Object.keys(globalStyleMap).length === 0) return;
+
+  // 重新构建 styleMap（从 globalStyleMap 拉出符合当前 sheet 的产品）
+  const updatedMap: Record<string, any> = {};
+  Object.keys(globalStyleMap).forEach(styleCode => {
+    const item = globalStyleMap[styleCode];
+    if (item?.Group && item.Group !== undefined) {
+      updatedMap[styleCode] = { ...item };
+    }
+  });
+
+  // 应用折扣逻辑
+  applyWholesaleDiscountIfNeeded(updatedMap, customerId);
+  setStyleMap(updatedMap);
 }, [customerId]);
+
 
 const sendEmail = async () => {
   const hasOrder = Object.values(quantities).some(qty => qty > 0);
