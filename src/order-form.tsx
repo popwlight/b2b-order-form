@@ -145,13 +145,38 @@ const sendEmail = async () => {
   const csvContent = `SKU,Qty\r\n${rows.join("\r\n")}`;
 
   // 生成 HTML 表格
-  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
-  Object.entries(quantities).forEach(([sku, qty]) => {
-    if (qty > 0) {
-      htmlTable += `<tr><td>${sku}</td><td>${qty}</td></tr>`;
-    }
-  });
-  htmlTable += "</table>";
+//  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
+//  Object.entries(quantities).forEach(([sku, qty]) => {
+//    if (qty > 0) {
+  //    htmlTable += `<tr><td>${sku}</td><td>${qty}</td></tr>`;
+//    }
+//  });
+ // htmlTable += "</table>";
+
+  let htmlTable = "";
+const grouped: Record<string, { rows: string[], subtotal: number }> = {};
+
+Object.entries(quantities).forEach(([sku, qty]) => {
+  if (qty > 0) {
+    const styleCode = sku.substring(0, 9);
+    const item = styleMap[styleCode];
+    const group = item?.Collection || "Uncategorized";
+    const price = parseFloat(item?.Wholesale) || 0;
+
+    if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
+    grouped[group].rows.push(`<tr><td>${sku}</td><td>${qty}</td></tr>`);
+    grouped[group].subtotal += price * qty;
+  }
+});
+
+Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
+  htmlTable += `<h4>${group}</h4>`;
+  htmlTable += "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
+  htmlTable += rows.join("");
+  htmlTable += `<tr><td><b>Subtotal</b></td><td><b>$${subtotal.toFixed(2)}</b></td></tr>`;
+  htmlTable += "</table><br/>";
+});
+
 
   // ✅ 加入下单时间、数量、金额
   const now = new Date();
@@ -264,16 +289,41 @@ const fixedSize = (size: string): string => {
   return clean.padStart(3, "0");
 };
 
+function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record<string, any>) {
+  const grouped: Record<string, { rows: string[], subtotal: number }> = {};
+
+  Object.entries(quantities).forEach(([sku, qty]) => {
+    if (qty > 0) {
+      const styleCode = sku.substring(0, 9); // 保持原SKU格式
+      const item = styleMap[styleCode];
+      const group = item?.Collection || "Uncategorized";
+      const price = parseFloat(item?.Wholesale) || 0;
+
+      if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
+      grouped[group].rows.push(`${sku},${qty}`);
+      grouped[group].subtotal += price * qty;
+    }
+  });
+
+  const lines = ["SKU,Qty"];
+  Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
+    lines.push(``, `# ${group}`, ...rows, `Subtotal,,${subtotal.toFixed(2)}`);
+  });
+
+  return lines.join("\r\n");
+}
+  
   const downloadCSV = () => {
    const hasOrder = Object.values(quantities).some(qty => qty > 0);
   if (!hasOrder) {
     alert("❌ No items ordered. Please enter quantities before downloading.");
     return;
   }
-    const rows = Object.entries(quantities)
-      .filter(([_, v]) => v > 0)
-      .map(([sku, qty]) => `${sku},${qty}`);
-    const csvContent = `SKU,Qty\n${rows.join("\n")}`;
+    //const rows = Object.entries(quantities)
+    //  .filter(([_, v]) => v > 0)
+   //   .map(([sku, qty]) => `${sku},${qty}`);
+   // const csvContent = `SKU,Qty\n${rows.join("\n")}`;
+    const csvContent = generateGroupedCSV(quantities, styleMap);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
