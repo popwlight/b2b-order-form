@@ -235,33 +235,33 @@ const sendEmail = async () => {
   };
 
 const fixedSize = (size: string): string => {
-if (size === "ONE" || size === "OS") return "ONE";
+  if (size === "ONE" || size === "OS") return "ONE";
 
-// 去除前缀（如 "Tween I" -> "I"）
-const parts = size.trim().split(" ");
-const rawSize = parts.length > 1 ? parts.slice(-1)\[0] : size;
+  // 去除前缀（如 "Tween I" -> "I"）
+  const parts = size.trim().split(" ");
+  const rawSize = parts.length > 1 ? parts.slice(-1)[0] : size;
 
-// 去掉斜杠（如 S/M → SM）并转大写
-const clean = rawSize.replace("/", "").toUpperCase();
+  // 去掉斜杠（如 S/M → SM）并转大写
+  const clean = rawSize.replace("/", "").toUpperCase();
 
-// 如果是合法数字（整数或小数）
-if (/^\d+(.\d+)?\$/.test(clean)) {
-return (parseFloat(clean) \* 10).toFixed(0).padStart(3, "0");
-}
+  // 如果是合法数字（整数或小数）
+  if (/^\d+(\.\d+)?$/.test(clean)) {
+    return (parseFloat(clean) * 10).toFixed(0).padStart(3, "0");
+  }
 
-// 特别处理如 1X → 01X，2X → 02X
-if (clean.match(/^\d+X\$/)) {
-const match = clean.match(/^(\d+)X\$/);
-return match ? match\[1].padStart(2, "0") + "X" : clean.padStart(3, "0");
-}
+  // 特别处理如 1X → 01X，2X → 02X
+  if (/^\d+X$/.test(clean)) {
+    const match = clean.match(/^(\d+)X$/);
+    return match ? match[1].padStart(2, "0") + "X" : clean.padStart(3, "0");
+  }
 
-// 如果是长度3的非数字（如 1X2），保持原样
-if (clean.length === 3 && !/^\d+(.\d+)?\$/.test(clean)) {
-return clean;
-}
+  // 如果是长度3的非数字（如 1X2），保持原样
+  if (clean.length === 3 && !/^\d+(\.\d+)?$/.test(clean)) {
+    return clean;
+  }
 
-// 默认前补0至3位
-return clean.padStart(3, "0");
+  // 默认前补0至3位
+  return clean.padStart(3, "0");
 };
 
   const downloadCSV = () => {
