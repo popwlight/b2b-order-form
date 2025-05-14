@@ -523,30 +523,32 @@ if (item?.Group) {
 >
   {idx + 1}. {group}
   {" "}
-  {(() => {
-    let qty = 0;
-    let amount = 0;
-    items.forEach((item: any) => {
-      const sizes = expandSizes(item.Size, item.Style);
-      const widths = expandWidths(item.Width);
-      const colours = expandColours(item.Colours);
-      colours.forEach(colour => {
-        widths.forEach(width => {
-          sizes.forEach(size => {
-            const sku = generateSKU(item, width, colour, size);
-            const count = quantities[sku] || 0;
-            qty += count;
-            amount += count * parseFloat(item.Wholesale || "0");
-          });
+{(() => {
+  let qty = 0;
+  let amount = 0;
+  items.forEach((originalItem: any) => {
+    const item = styleMap[originalItem.Style] || originalItem;
+    const sizes = expandSizes(item.Size, item.Style);
+    const widths = expandWidths(item.Width);
+    const colours = expandColours(item.Colours);
+    colours.forEach(colour => {
+      widths.forEach(width => {
+        sizes.forEach(size => {
+          const sku = generateSKU(item, width, colour, size);
+          const count = quantities[sku] || 0;
+          qty += count;
+          amount += count * parseFloat(item.Wholesale || "0");
         });
       });
     });
-    return `(Ordered: ${qty}, $${amount.toFixed(2)})`;
-  })()}
+  });
+  return `(Ordered: ${qty}, $${amount.toFixed(2)})`;
+})()}
 </h2>
 
           {expandedGroups[group] === false ? null : (
-            items.map(item => {
+            items.map(originalItem => {
+              const item = styleMap[originalItem.Style] || originalItem;
               const sizes = expandSizes(item.Size, item.Style);
               const widths = expandWidths(item.Width);
               const colours = expandColours(item.Colours);
