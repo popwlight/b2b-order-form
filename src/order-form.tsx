@@ -336,8 +336,18 @@ const fixedSize = (size: string): string => {
 
   const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    const styleCode = sku.substring(0, 9);
-    const item = styleMap[styleCode];
+const item = data.find(i => {
+  const sizes = expandSizes(i.Size, i.Style);
+  const widths = expandWidths(i.Width);
+  const colours = expandColours(i.Colours);
+  return colours.some(colour =>
+    widths.some(width =>
+      sizes.some(size =>
+        generateSKU(i, width, colour, size) === sku
+      )
+    )
+  );
+});
     return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
   }, 0);
 
