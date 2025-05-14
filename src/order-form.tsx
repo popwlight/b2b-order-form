@@ -138,58 +138,42 @@ const sendEmail = async () => {
     return;
   }
 
-  // 生成 CSV 内容
-let csvRows: string[] = [];
-csvRows.push("SKU,Qty");
-
+  // ✅ 只声明一次 groupedEntries
 const groupedEntries: Record<string, [string, number][]> = {};
 
-// 分组 entries by Collection
 Object.entries(quantities)
   .filter(([_, qty]) => qty > 0)
   .forEach(([sku, qty]) => {
-    const styleCode = sku.substring(0, 9); // 用 SKU 前 9 位匹配 style
+    const styleCode = sku.substring(0, 9);
     const item = styleMap[styleCode];
     const group = item?.Collection || "Ungrouped";
     if (!groupedEntries[group]) groupedEntries[group] = [];
     groupedEntries[group].push([sku, qty]);
   });
 
-// 插入每个分组的标题行和明细行
+// CSV 构建
+let csvRows: string[] = [];
+csvRows.push("SKU,Qty");
+
 Object.entries(groupedEntries).forEach(([group, entries]) => {
-  csvRows.push(`\n${group}`); // 分组标题
+  csvRows.push(`\n${group}`);
   entries.forEach(([sku, qty]) => {
     csvRows.push(`${sku},${qty}`);
   });
 });
-
 const csvContent = csvRows.join("\n");
 
-
-  // 生成 HTML 表格
+// HTML 构建
 let htmlTable = "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse: collapse;'>";
 htmlTable += "<tr><th>SKU</th><th>Qty</th></tr>";
-
-const groupedEntries: Record<string, [string, number][]> = {};
-
-Object.entries(quantities)
-  .filter(([_, qty]) => qty > 0)
-  .forEach(([sku, qty]) => {
-    const styleCode = sku.substring(0, 9); // 前9位作为Style code
-    const item = styleMap[styleCode];
-    const group = item?.Collection || "Ungrouped";
-    if (!groupedEntries[group]) groupedEntries[group] = [];
-    groupedEntries[group].push([sku, qty]);
-  });
-
 Object.entries(groupedEntries).forEach(([group, entries]) => {
   htmlTable += `<tr><td colspan="2" style="font-weight:bold; background:#eee;">${group}</td></tr>`;
   entries.forEach(([sku, qty]) => {
     htmlTable += `<tr><td>${sku}</td><td>${qty}</td></tr>`;
   });
 });
-
 htmlTable += "</table>";
+
 
 
   // ✅ 加入下单时间、数量、金额
