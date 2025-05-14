@@ -168,7 +168,8 @@ const sendEmail = async () => {
  // htmlTable += "</table>";
 
   let htmlTable = "";
-const grouped: Record<string, { rows: string[], subtotal: number }> = {};
+const grouped: Record<string, { rows: string[], subtotal: number, qty: number }> = {};
+
 
 Object.entries(quantities).forEach(([sku, qty]) => {
   if (qty > 0) {
@@ -180,6 +181,7 @@ Object.entries(quantities).forEach(([sku, qty]) => {
     if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
     grouped[group].rows.push(`<tr><td>${sku}</td><td>${qty}</td></tr>`);
     grouped[group].subtotal += price * qty;
+    grouped[group].qty = (grouped[group].qty || 0) + qty;
   }
 });
 
@@ -187,7 +189,7 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
   htmlTable += `<h4>${group}</h4>`;
   htmlTable += "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
   htmlTable += rows.join("");
-  htmlTable += `<tr><td><b>Subtotal</b></td><td><b>$${subtotal.toFixed(2)}</b></td></tr>`;
+  htmlTable += `<tr><td><b>Subtotal Qty:</b> ${grouped[group].qty}</td><td><b>$${subtotal.toFixed(2)}</b></td></tr>`;
   htmlTable += "</table><br/>";
 });
 
@@ -304,7 +306,7 @@ const fixedSize = (size: string): string => {
 };
 
 function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record<string, any>) {
-  const grouped: Record<string, { rows: string[], subtotal: number }> = {};
+  const grouped: Record<string, { rows: string[], subtotal: number, qty: number }> = {};
 
   Object.entries(quantities).forEach(([sku, qty]) => {
     if (qty > 0) {
@@ -316,12 +318,13 @@ function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record
       if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
       grouped[group].rows.push(`${sku},${qty}`);
       grouped[group].subtotal += price * qty;
+      grouped[group].qty = (grouped[group].qty || 0) + qty;
     }
   });
 
   const lines = ["SKU,Qty"];
   Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
-    lines.push(``, `# ${group}`, ...rows, `Subtotal,,${subtotal.toFixed(2)}`);
+    lines.push(``, `# ${group}`, ...rows, `Subtotal,${grouped[group].qty},${subtotal.toFixed(2)}`);
   });
 
   return lines.join("\r\n");
