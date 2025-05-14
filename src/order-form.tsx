@@ -106,19 +106,19 @@ useEffect(() => {
       setData(res.data);
 
 const map: Record<string, any> = {};
-let currentGroup: string | null = null;
+let currentCollectionGroup: string | null = null;
 
 res.data.forEach(i => {
   // 如果是 Collection 分组标题行（其余字段都为空）
   if (i.Collection && !i.Style && !i.Desc) {
-    currentGroup = i.Collection;
+    currentCollectionGroup = i.Collection;
   }
 
   // 如果是正常产品行
   if (i.Style) {
     map[i.Style] = {
       ...i,
-      Group: currentGroup, // ✅ 加入真实 Collection 分组名
+      Group: currentCollectionGroup, // ✅ 加入真实 Collection 分组名
     };
   }
 });
