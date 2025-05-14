@@ -343,7 +343,7 @@ function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record
     //  .filter(([_, v]) => v > 0)
    //   .map(([sku, qty]) => `${sku},${qty}`);
    // const csvContent = `SKU,Qty\n${rows.join("\n")}`;
-    const csvContent = generateGroupedCSV(quantities, styleMap);
+    const csvContent = generateGroupedCSV(quantities, globalStyleMap);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -355,7 +355,7 @@ function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record
   const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
     const styleCode = sku.substring(0, 9);
-    const item = styleMap[styleCode];
+    const item =  globalStyleMap[styleCode];
     return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
   }, 0);
 
