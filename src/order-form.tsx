@@ -489,9 +489,16 @@ if (item?.Group) {
   </select>
 </div>
 
-<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+<div style={{
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "10px",
+  marginBottom: "10px"
+}}>
   {/* 左侧：Customer ID 和 Name */}
-  <div style={{ display: "flex", gap: 10 }}>
+  <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 10, flexGrow: 1, minWidth: 260 }}>
     <input
       placeholder="Enter Customer ID"
       value={customerId}
@@ -509,7 +516,7 @@ if (item?.Group) {
   </div>
 
   {/* 右侧：Email 和按钮 */}
-  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 10, flexGrow: 1, minWidth: 300 }}>
     <input
       type="email"
       placeholder="Enter email to send"
