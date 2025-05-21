@@ -489,53 +489,57 @@ if (item?.Group) {
   </select>
 </div>
 
-     <div style={{ display: "flex", alignItems: "center", marginBottom: 10, gap: 10 }}>
-  <input
-    placeholder="Enter Customer ID"
-    value={customerId}
-    onChange={e => setCustomerId(e.target.value)}
-    onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-    style={{ padding: 5, fontSize: 16 }}
-  />
-  <input
-    placeholder="Enter Customer Name"
-    value={customerName}
-    onChange={e => setCustomerName(e.target.value)}
-    onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-    style={{ padding: 5, fontSize: 16 }}
-  />
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+  {/* 左侧：Customer ID 和 Name */}
+  <div style={{ display: "flex", gap: 10 }}>
+    <input
+      placeholder="Enter Customer ID"
+      value={customerId}
+      onChange={e => setCustomerId(e.target.value)}
+      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+      style={{ padding: 5, fontSize: 16 }}
+    />
+    <input
+      placeholder="Enter Customer Name"
+      value={customerName}
+      onChange={e => setCustomerName(e.target.value)}
+      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+      style={{ padding: 5, fontSize: 16 }}
+    />
+  </div>
+
+  {/* 右侧：Email 和按钮 */}
+  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <input
+      type="email"
+      placeholder="Enter email to send"
+      value={email}
+      onChange={e => setEmail(e.target.value)}
+      style={{ padding: 5, fontSize: 16 }}
+    />
+    <button onClick={sendEmail} style={{ padding: 8, fontWeight: "bold" }}>
+      Send to Email
+    </button>
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept=".csv"
+      onChange={handleImportCSV}
+      style={{ display: "none" }}
+    />
+    <button
+      type="button"
+      onClick={() => fileInputRef.current?.click()}
+      style={{ padding: 8, fontWeight: "bold" }}
+    >
+      Import CSV
+    </button>
+    <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
+      Download CSV
+    </button>
+  </div>
 </div>
 
-      
-        <div>
-          <input
-  type="email"
-  placeholder="Enter email to send"
-  value={email}
-  onChange={e => setEmail(e.target.value)}
-  style={{ padding: 5, fontSize: 16, marginLeft: 10 }}
-/>
-<button onClick={sendEmail} style={{ padding: 8, fontWeight: "bold", marginLeft: 10 }}>
-  Send to Email
-</button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleImportCSV}
-            style={{ display: "none" }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            style={{ padding: 8, fontWeight: "bold", marginRight: 10 }}
-          >
-            Import CSV
-          </button>
-          <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
-            Download CSV
-          </button>
-        </div>
 
       <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
 
