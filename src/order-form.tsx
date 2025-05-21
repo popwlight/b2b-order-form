@@ -276,16 +276,15 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      to: email,
-      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,subject: `B2B Order from ${
-  customerName && customerId
-    ? `${customerName} (${customerId})`
-    : customerName || customerId || "Unnamed Customer"
-}`,
-
-      htmlContent,
-      csvContent: encodeToBase64(csvContent),
-    }),
+  to: email,
+  subject: `B2B Order from ${
+    customerName && customerId
+      ? `${customerName} (${customerId})`
+      : customerName || customerId || "Unnamed Customer"
+  }`,
+  htmlContent,
+  csvContent: encodeToBase64(csvContent),
+}),
   });
 
   const result = await res.json();
