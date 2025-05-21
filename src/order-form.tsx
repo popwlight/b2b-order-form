@@ -645,6 +645,7 @@ if (item?.Group) {
         </div>
       ))}
     </div>
+      </div>
   );
 }
 
