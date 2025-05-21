@@ -119,6 +119,7 @@ const sheetOptions = ["Summer 2026", "Limited Fashion"]; // 替换为你实际�
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
+  const [sendCopyToCapezio, setSendCopyToCapezio] = useState(true);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
@@ -282,6 +283,7 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
       ? `${customerName} (${customerId})`
       : customerName || customerId || "Unnamed Customer"
   }`,
+  cc: sendCopyToCapezio ? ["sball@capezio.com", "kjones@capezio.com"] : [],
   htmlContent,
   csvContent: encodeToBase64(csvContent),
 }),
@@ -516,7 +518,17 @@ if (item?.Group) {
   </div>
 
   {/* 右侧：Email 和按钮 */}
-  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 10, flexGrow: 1, minWidth: 300 }}>
+  {/* 右侧：Email + 复选框 + 按钮 */}
+<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+  <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
+    <input
+      type="checkbox"
+      checked={sendCopyToCapezio}
+      onChange={(e) => setSendCopyToCapezio(e.target.checked)}
+    />
+    Send Copy to Capezio
+  </label>
+  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
     <input
       type="email"
       placeholder="Enter email to send"
@@ -546,6 +558,7 @@ if (item?.Group) {
     </button>
   </div>
 </div>
+
 
 
       <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
