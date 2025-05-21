@@ -302,12 +302,21 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
     }
   });
 
-  const handleChange = (sku: string, val: string) => {
-    const qty = parseInt(val);
-    if (!isNaN(qty)) {
-      setQuantities(q => ({ ...q, [sku]: qty }));
-    }
-  };
+const handleChange = (sku: string, val: string) => {
+  if (val.trim() === "") {
+    setQuantities(q => {
+      const updated = { ...q };
+      delete updated[sku];
+      return updated;
+    });
+    return;
+  }
+
+  const qty = parseInt(val);
+  if (!isNaN(qty)) {
+    setQuantities(q => ({ ...q, [sku]: qty }));
+  }
+};
 
   const generateSKU = (item: any, width: string, colour: string, size: string): string => {
     const style = item.Style;
