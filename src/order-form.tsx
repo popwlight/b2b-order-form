@@ -490,21 +490,24 @@ if (item?.Group) {
   </select>
 </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <input
-          placeholder="Enter Customer ID"
-          value={customerId}
-          onChange={e => setCustomerId(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-          style={{ padding: 5, fontSize: 16 }}
-        />
-        <input
-  placeholder="Enter Customer Name"
-  value={customerName}
-  onChange={e => setCustomerName(e.target.value)}
-  onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-  style={{ padding: 5, fontSize: 16, marginLeft: 10 }}
-/>
+     <div style={{ display: "flex", alignItems: "center", marginBottom: 10, gap: 10 }}>
+  <input
+    placeholder="Enter Customer ID"
+    value={customerId}
+    onChange={e => setCustomerId(e.target.value)}
+    onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+    style={{ padding: 5, fontSize: 16 }}
+  />
+  <input
+    placeholder="Enter Customer Name"
+    value={customerName}
+    onChange={e => setCustomerName(e.target.value)}
+    onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+    style={{ padding: 5, fontSize: 16 }}
+  />
+</div>
+
+      
         <div>
           <input
   type="email"
