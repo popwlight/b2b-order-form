@@ -517,8 +517,8 @@ if (item?.Group) {
     />
   </div>
 
-  {/* 右侧：Email 和按钮 */}
   {/* 右侧：Email + 复选框 + 按钮 */}
+{/* ✅ Email 区域容器 */}
 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
   <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
     <input
@@ -557,10 +557,13 @@ if (item?.Group) {
       Download CSV
     </button>
   </div>
+</div> {/* ✅ ← 正确关闭 Email 区块容器 */}
 
+{/* ✅ 将总数信息独立出来显示 */}
+<p style={{ marginTop: 10 }}>
+  Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b>
+</p>
 
-
-      <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
 
       {Object.entries(grouped).map(([group, items], idx) => (
         <div key={group} style={{ marginBottom: 30 }}>
