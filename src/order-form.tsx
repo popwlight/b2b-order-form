@@ -557,7 +557,6 @@ if (item?.Group) {
       Download CSV
     </button>
   </div>
-</div>
 
 
 
