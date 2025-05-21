@@ -583,10 +583,13 @@ if (item?.Group) {
                                 return (
                                   <td key={sku}>
                                     <input
-                                      value={quantities[sku] || ""}
-                                      onChange={e => handleChange(sku, e.target.value)}
-                                      style={{ width: 40 }}
-                                    />
+  type="text"
+  inputMode="numeric"
+  pattern="\d*"
+  value={quantities[sku] || ""}
+  onChange={e => handleChange(sku, e.target.value)}
+  style={{ width: 40 }}
+/>
                                   </td>
                                 );
                               })}
