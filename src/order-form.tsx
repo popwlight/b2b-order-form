@@ -536,7 +536,6 @@ if (item?.Group) {
             Download CSV
           </button>
         </div>
-      </div>
 
       <p style={{ marginTop: 10 }}>Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b></p>
 
