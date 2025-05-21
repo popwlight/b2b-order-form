@@ -117,6 +117,7 @@ const sheetOptions = ["Summer 2026", "Limited Fashion"]; // 替换为你实际�
   const [data, setData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [email, setEmail] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -249,6 +250,7 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
 
   const summaryHtml = `
     <p><b>Customer ID:</b> ${customerId || "Unnamed Customer"}</p>
+    <p><b>Customer Name:</b> ${customerName || "N/A"}</p>
     <p><b>Order Time:</b> ${orderTime}</p>
     <p><b>Total Quantity:</b> ${totalQty}</p>
     <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
@@ -275,7 +277,12 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       to: email,
-      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,
+      subject: `B2B Order from ${customerId || "Unnamed Customer"}`,subject: `B2B Order from ${
+  customerName && customerId
+    ? `${customerName} (${customerId})`
+    : customerName || customerId || "Unnamed Customer"
+}`,
+
       htmlContent,
       csvContent: encodeToBase64(csvContent),
     }),
@@ -491,6 +498,13 @@ if (item?.Group) {
           onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
           style={{ padding: 5, fontSize: 16 }}
         />
+        <input
+  placeholder="Enter Customer Name"
+  value={customerName}
+  onChange={e => setCustomerName(e.target.value)}
+  onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+  style={{ padding: 5, fontSize: 16, marginLeft: 10 }}
+/>
         <div>
           <input
   type="email"
