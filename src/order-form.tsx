@@ -519,6 +519,7 @@ if (item?.Group) {
 
   {/* 右侧：Email + 复选框 + 按钮 */}
 {/* ✅ Email 区域容器 */}
+{/* 👇 按钮区开始 */}
 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
   <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
     <input
@@ -528,41 +529,17 @@ if (item?.Group) {
     />
     Send Copy to Capezio
   </label>
-  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-    <input
-      type="email"
-      placeholder="Enter email to send"
-      value={email}
-      onChange={e => setEmail(e.target.value)}
-      style={{ padding: 5, fontSize: 16 }}
-    />
-    <button onClick={sendEmail} style={{ padding: 8, fontWeight: "bold" }}>
-      Send to Email
-    </button>
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept=".csv"
-      onChange={handleImportCSV}
-      style={{ display: "none" }}
-    />
-    <button
-      type="button"
-      onClick={() => fileInputRef.current?.click()}
-      style={{ padding: 8, fontWeight: "bold" }}
-    >
-      Import CSV
-    </button>
-    <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
-      Download CSV
-    </button>
-  </div>
-</div> {/* ✅ ← 正确关闭 Email 区块容器 */}
 
-{/* ✅ 将总数信息独立出来显示 */}
+  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+    ...
+  </div>
+</div> {/* ✅ 正确关闭按钮区 */}
+
+{/* 👇 单独写产品汇总信息 */}
 <p style={{ marginTop: 10 }}>
   Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b>
 </p>
+
 
 
       {Object.entries(grouped).map(([group, items], idx) => (
