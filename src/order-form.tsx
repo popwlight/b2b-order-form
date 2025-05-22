@@ -200,6 +200,10 @@ const sendEmail = async () => {
     alert("Please enter an email address.");
     return;
   }
+   if (!customerId && !customerName) {
+    alert("Please enter Customer ID or Customer Name (at least one required).");
+    return;
+  }
 
   // 生成 CSV 内容
 const csvContent = generateGroupedCSV(quantities, globalStyleMap);
@@ -250,7 +254,7 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
     .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
   const summaryHtml = `
-    <p><b>Customer ID:</b> ${customerId || "Unnamed Customer"}</p>
+    <p><b>Customer ID:</b> ${customerId || "N/A"}</p>
     <p><b>Customer Name:</b> ${customerName || "N/A"}</p>
     <p><b>Order Time:</b> ${orderTime}</p>
     <p><b>Total Quantity:</b> ${totalQty}</p>
@@ -491,49 +495,101 @@ if (item?.Group) {
   </select>
 </div>
 
-<div style={{
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "10px",
-  marginBottom: "10px"
-}}>
+<div
+  style={{
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 10,
+  }}
+>
   {/* 左侧：Customer ID 和 Name */}
-  <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 10, flexGrow: 1, minWidth: 260 }}>
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      minWidth: 260,
+      flex: 1,
+    }}
+  >
     <input
       placeholder="Enter Customer ID"
       value={customerId}
       onChange={e => setCustomerId(e.target.value)}
       onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-      style={{ padding: 5, fontSize: 16 }}
+      style={{ padding: 5, fontSize: 16, minWidth: 120 }}
     />
     <input
       placeholder="Enter Customer Name"
       value={customerName}
       onChange={e => setCustomerName(e.target.value)}
       onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-      style={{ padding: 5, fontSize: 16 }}
+      style={{ padding: 5, fontSize: 16, minWidth: 120 }}
     />
   </div>
 
-  {/* 右侧：Email + 复选框 + 按钮 */}
-{/* ✅ Email 区域容器 */}
-{/* 👇 按钮区开始 */}
-<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
-  <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
-    <input
-      type="checkbox"
-      checked={sendCopyToCapezio}
-      onChange={(e) => setSendCopyToCapezio(e.target.checked)}
-    />
-    Send Copy to Capezio
-  </label>
-
-  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-    ...
+  {/* 右侧：邮箱、复选框、按钮 */}
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+      gap: 5,
+      minWidth: 220,
+    }}
+  >
+    <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <input
+        type="checkbox"
+        checked={sendCopyToCapezio}
+        onChange={e => setSendCopyToCapezio(e.target.checked)}
+      />
+      Send Copy to Capezio
+    </label>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+      }}
+    >
+      <input
+        type="email"
+        placeholder="Enter email to send"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        style={{ padding: 5, fontSize: 16, minWidth: 160 }}
+      />
+      <button onClick={sendEmail} style={{ padding: 8, fontWeight: "bold" }}>
+        Send to Email
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleImportCSV}
+        style={{ display: "none" }}
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        style={{ padding: 8, fontWeight: "bold" }}
+      >
+        Import CSV
+      </button>
+      <button onClick={downloadCSV} style={{ padding: 8, fontWeight: "bold" }}>
+        Download CSV
+      </button>
+    </div>
   </div>
-</div> {/* ✅ 正确关闭按钮区 */}
+</div>
+
 
 {/* 👇 单独写产品汇总信息 */}
 <p style={{ marginTop: 10 }}>
@@ -624,7 +680,6 @@ if (item?.Group) {
         </div>
       ))}
     </div>
-      </div>
   );
 }
 
