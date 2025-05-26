@@ -308,17 +308,21 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
 };
 
   
-  const grouped: Record<string, any[]> = {};
+const grouped: Record<string, any[]> = React.useMemo(() => {
+  const groups: Record<string, any[]> = {};
   let currentGroup = "Ungrouped";
   data.forEach(row => {
     if (row.Collection && !row.Style && !row.Desc) {
       currentGroup = row.Collection;
-      if (!grouped[currentGroup]) grouped[currentGroup] = [];
+      if (!groups[currentGroup]) groups[currentGroup] = [];
     } else if (row.Style && row.Wholesale) {
-      if (!grouped[currentGroup]) grouped[currentGroup] = [];
-      grouped[currentGroup].push(row);
+      if (!groups[currentGroup]) groups[currentGroup] = [];
+      groups[currentGroup].push(row);
     }
   });
+  return groups;
+}, [data]);
+
 
 const handleChange = (sku: string, val: string) => {
   if (val.trim() === "") {
