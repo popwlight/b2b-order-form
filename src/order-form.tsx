@@ -238,7 +238,7 @@ Object.entries(quantities).forEach(([sku, qty]) => {
     const group = item?.Group || "Uncategorized";
     const price = parseFloat(item?.Wholesale) || 0;
     if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
-    grouped[group].rows.push(`${sku},${qty}`);
+    grouped[group].rows.push(`<tr><td>${sku}</td><td>${qty}</td></tr>`);
     grouped[group].subtotal += price * qty;
     grouped[group].qty = (grouped[group].qty || 0) + qty;
   }
