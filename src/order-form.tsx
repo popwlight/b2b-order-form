@@ -14,17 +14,11 @@ import { useSearchParams } from 'react-router-dom';
 
 const globalStyleMap: Record<string, any> = {};
 
-function applyWholesaleDiscountIfNeeded(map: Record<string, any>, customerId: string) {
+
+
+function applyWholesaleDiscountIfNeeded(dataArr, customerId) {
   if (customerId === "NZ1008") {
-    Object.keys(map).forEach(key => {
-      const item = map[key];
-      if (item?.Wholesale && !item._discounted) {
-        item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
-        item._discounted = true;
-      }
-    });
-    Object.keys(globalStyleMap).forEach(key => {
-      const item = globalStyleMap[key];
+    dataArr.forEach(item => {
       if (item?.Wholesale && !item._discounted) {
         item.Wholesale = (parseFloat(item.Wholesale) * 0.8).toFixed(2);
         item._discounted = true;
@@ -124,35 +118,47 @@ const sheetOptions = ["Summer 2026", "Limited Fashion"]; // 替换为你实际�
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [styleMap, setStyleMap] = useState<Record<string, any>>({});
 
+function findItemBySKU(sku: string) {
+  // 按 SKU 精确找，必须和 generateSKU 逻辑一致
+  return data.find(row => {
+    const widths = expandWidths(row.Width);
+    const colours = expandColours(row.Colours);
+    const sizes = expandSizes(row.Size, row.Style);
+    return colours.some(colour =>
+      widths.some(width =>
+        sizes.some(size => generateSKU(row, width, colour, size) === sku)
+      )
+    );
+  });
+}
+  
 useEffect(() => {
   axios.get(`https://opensheet.elk.sh/1yRWT1Ta1S21tN1dmuKzWNbhdlLwj2Sdtobgy1Rj8IM0/${sheetName}`)
     .then(res => {
       setData(res.data);
 
-const map: Record<string, any> = {};
 let currentCollectionGroup: string | null = null;
+const rows: any[] = [];
 
 res.data.forEach(i => {
-  // 如果是 Collection 分组标题行（其余字段都为空）
   if (i.Collection && !i.Style && !i.Desc) {
     currentCollectionGroup = i.Collection;
   }
-
-// 如果是正常产品行
+  // 如果是正常产品行
   if (i.Style) {
-    map[i.Style] = {
+    rows.push({
       ...i,
-      Group: currentCollectionGroup, // ✅ 当前 sheet 内使用
-    };
-    globalStyleMap[i.Style] = {
-      ...i,
-      Group: currentCollectionGroup, // ✅ 所有 sheet 累积缓存
-    };
+      Group: currentCollectionGroup,
+    });
+    // 仅用于SKU查找等辅助（非必须）
+    // globalStyleMap[`${i.Style}|${i.Colours}|${i.Size}|${i.Width}`] = {
+    //   ...i,
+    //   Group: currentCollectionGroup,
+    // };
   }
 });
 
-applyWholesaleDiscountIfNeeded(map, customerId);
-setStyleMap(map);
+setData(rows);
 
 
       const expanded: Record<string, boolean> = {};
@@ -178,7 +184,7 @@ useEffect(() => {
   // 重新构建 styleMap（从 globalStyleMap 拉出符合当前 sheet 的产品）
   const updatedMap: Record<string, any> = {};
   Object.keys(globalStyleMap).forEach(styleCode => {
-    const item = globalStyleMap[styleCode];
+    const item = originalItem;
     if (item?.Group && item.Group !== undefined) {
       updatedMap[styleCode] = { ...item };
     }
@@ -186,7 +192,7 @@ useEffect(() => {
 
   // 应用折扣逻辑
   applyWholesaleDiscountIfNeeded(updatedMap, customerId);
-  setStyleMap(updatedMap);
+  setStyleMap(rows);
 }, [customerId]);
 
 
@@ -206,7 +212,7 @@ const sendEmail = async () => {
   }
 
   // 生成 CSV 内容
-const csvContent = generateGroupedCSV(quantities, globalStyleMap);
+const csvContent = generateGroupedCSV(quantities);
 
   // 生成 HTML 表格
 //  let htmlTable = "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
@@ -224,7 +230,7 @@ const grouped: Record<string, { rows: string[], subtotal: number, qty: number }>
 Object.entries(quantities).forEach(([sku, qty]) => {
   if (qty > 0) {
     const styleCode = sku.substring(0, 9);
-    const item = globalStyleMap[styleCode];
+    const item = findItemBySKU(sku);
     const group = item?.Group || "Uncategorized";
     const price = parseFloat(item?.Wholesale) || 0;
 
@@ -282,7 +288,7 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
   to: email,
-  subject: `B2B Order from ${
+  subject: `Capezio Terra - V720C Order from ${
     customerName && customerId
       ? `${customerName} (${customerId})`
       : customerName || customerId || "Unnamed Customer"
@@ -370,13 +376,14 @@ const fixedSize = (size: string): string => {
   return clean.padStart(3, "0");
 };
 
-function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record<string, any>) {
+function generateGroupedCSV(quantities: Record<string, number>) {
   const grouped: Record<string, { rows: string[], subtotal: number, qty: number }> = {};
 
   Object.entries(quantities).forEach(([sku, qty]) => {
     if (qty > 0) {
-      const styleCode = sku.substring(0, 9); // 保持原SKU格式
-      const item = styleMap[styleCode];
+      //const styleCode = sku.substring(0, 9); // 保持原SKU格式
+      //const item = styleMap[styleCode];
+      const item = findItemBySKU(sku);
       const group = item?.Group || "Uncategorized";
       const price = parseFloat(item?.Wholesale) || 0;
 
@@ -405,7 +412,7 @@ function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record
     //  .filter(([_, v]) => v > 0)
    //   .map(([sku, qty]) => `${sku},${qty}`);
    // const csvContent = `SKU,Qty\n${rows.join("\n")}`;
-    const csvContent = generateGroupedCSV(quantities, globalStyleMap);
+    const csvContent = generateGroupedCSV(quantities);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -416,8 +423,7 @@ function generateGroupedCSV(quantities: Record<string, number>, styleMap: Record
 
   const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
-    const styleCode = sku.substring(0, 9);
-    const item =  globalStyleMap[styleCode];
+  const item = findItemBySKU(sku);
     return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
   }, 0);
 
@@ -453,7 +459,7 @@ setTimeout(() => {
     const updated = { ...prev };
     Object.keys(imported).forEach(sku => {
    const styleCode = sku.substring(0, 9);
-const item = globalStyleMap[styleCode];
+const item = findItemBySKU(sku);
 if (item?.Group) {
   updated[item.Group] = true;
 }
@@ -474,7 +480,7 @@ if (item?.Group) {
         alt="Logo"
         style={{ height: 30.645, marginRight: 10 }}
       />
-      <h1 style={{ fontSize: 20 }}>Capezio Summer 2026 Order Form</h1>
+      <h1 style={{ fontSize: 20 }}>Capezio Terra - V720C Order Form</h1>
     </div>
       <div style={{ marginBottom: 10 }}>
   <label><b>Choose Secion:</b> </label>
@@ -610,7 +616,7 @@ if (item?.Group) {
   let qty = 0;
   let amount = 0;
   items.forEach((originalItem: any) => {
-    const item = styleMap[originalItem.Style] || originalItem;
+    const item = originalItem;
     const sizes = expandSizes(item.Size, item.Style);
     const widths = expandWidths(item.Width);
     const colours = expandColours(item.Colours);
@@ -631,7 +637,7 @@ if (item?.Group) {
 
           {expandedGroups[group] === false ? null : (
             items.map(originalItem => {
-              const item = styleMap[originalItem.Style] || originalItem;
+              const item = originalItem;
               const sizes = expandSizes(item.Size, item.Style);
               const widths = expandWidths(item.Width);
               const colours = expandColours(item.Colours);
