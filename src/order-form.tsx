@@ -310,18 +310,15 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
   
 const grouped: Record<string, any[]> = React.useMemo(() => {
   const groups: Record<string, any[]> = {};
-  let currentGroup = "Ungrouped";
   data.forEach(row => {
-    if (row.Collection && !row.Style && !row.Desc) {
-      currentGroup = row.Collection;
-      if (!groups[currentGroup]) groups[currentGroup] = [];
-    } else if (row.Style && row.Wholesale) {
-      if (!groups[currentGroup]) groups[currentGroup] = [];
-      groups[currentGroup].push(row);
-    }
+    if (!row.Style || !row.Wholesale) return; // 跳过无效行
+    const group = row.Group || "Ungrouped";
+    if (!groups[group]) groups[group] = [];
+    groups[group].push(row);
   });
   return groups;
 }, [data]);
+
 
 
 const handleChange = (sku: string, val: string) => {
