@@ -14,6 +14,7 @@ import { useSearchParams } from 'react-router-dom';
 
 const globalStyleMap: Record<string, any> = {};
 const globalData: any[] = [];
+const GST_RATE = 0.1;
 
 
 
@@ -263,13 +264,15 @@ Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
     .toString()
     .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
-  const summaryHtml = `
-    <p><b>Customer ID:</b> ${customerId || "N/A"}</p>
-    <p><b>Customer Name:</b> ${customerName || "N/A"}</p>
-    <p><b>Order Time:</b> ${orderTime}</p>
-    <p><b>Total Quantity:</b> ${totalQty}</p>
-    <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
-  `;
+const summaryHtml = `
+  <p><b>Customer ID:</b> ${customerId || "N/A"}</p>
+  <p><b>Customer Name:</b> ${customerName || "N/A"}</p>
+  <p><b>Order Time:</b> ${orderTime}</p>
+  <p><b>Total Quantity:</b> ${totalQty}</p>
+  <p><b>Total Amount (ex. GST):</b> $${totalAmount.toFixed(2)}</p>
+  <p><b>GST (10%):</b> $${gstAmount.toFixed(2)}</p>
+  <p><b>Total Amount (incl. GST):</b> $${totalWithGST.toFixed(2)}</p>
+`;
 
   const htmlContent = `
   <div style="display: flex; align-items: center; margin-bottom: 20px;">
@@ -427,6 +430,8 @@ Object.entries(quantities).forEach(([sku, qty]) => {
   const item = findItemBySKU(sku);
   return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
 }, 0);
+  const gstAmount = totalAmount * GST_RATE;
+  const totalWithGST = totalAmount + gstAmount;
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -600,7 +605,7 @@ if (item?.Group) {
 
 {/* 👇 单独写产品汇总信息 */}
 <p style={{ marginTop: 10 }}>
-  Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b>
+  Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b>  GST: <b>${gstAmount.toFixed(2)}</b> — Total incl. GST: <b>${totalWithGST.toFixed(2)}
 </p>
 
 
