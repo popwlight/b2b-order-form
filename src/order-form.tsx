@@ -106,10 +106,10 @@ function App() {
   
 
 const searchParams = new URLSearchParams(window.location.search);
-const initialSheet = searchParams.get("sheet") || "Limited Fashion";
+const initialSheet = searchParams.get("sheet") || "Core Products";
 const [sheetName, setSheetName] = useState(initialSheet);
 
-const sheetOptions = ["Summer 2026", "Limited Fashion"]; // 替换为你实际的 sheet 名字列表
+const sheetOptions = ["Core Products"]; // 替换为你实际的 sheet 名字列表
 
   const [data, setData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -295,7 +295,7 @@ const summaryHtml = `
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
   to: email,
-  subject: `Capezio Summer 2026 Order from ${
+  subject: `Capezio Order from ${
     customerName && customerId
       ? `${customerName} (${customerId})`
       : customerName || customerId || "Unnamed Customer"
@@ -486,7 +486,7 @@ if (item?.Group) {
         alt="Logo"
         style={{ height: 30.645, marginRight: 10 }}
       />
-      <h1 style={{ fontSize: 20 }}>Capezio Summer 2026 Order Form</h1>
+      <h1 style={{ fontSize: 20 }}>Capezio Order Form</h1>
     </div>
       <div style={{ marginBottom: 10 }}>
   <label><b>Choose Secion:</b> </label>
