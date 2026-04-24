@@ -345,7 +345,7 @@ const summaryHtml = `
       ? `${customerName} (${customerId})`
       : customerName || customerId || "Unnamed Customer"
   }`,
-  cc: sendCopyToCapezio ? ["sball@capezio.com", "kjones@capezio.com"] : [],
+  cc: sendCopyToCapezio ? ["ysato@capezio.com", "lwang@capezio.com"] : [],
   htmlContent,
   csvContent: encodeToBase64(csvContent),
 }),
