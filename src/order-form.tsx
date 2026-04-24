@@ -701,7 +701,7 @@ amount += count * parseFloat((discounted ?? item.Wholesale) || "0");
                 <div key={item.Style} style={{ marginBottom: 20 }}>
                 <b>
   {item.Collection}  {item.Style} - {item.Desc} (
-  ${item.RRP} / ${(() => {
+  {/*${item.RRP} / */}${(() => {
     const discounted = styleMap[item.Style]?.Wholesale;
     return discounted ?? item.Wholesale;
   })()}
