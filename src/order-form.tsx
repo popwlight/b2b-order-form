@@ -653,7 +653,7 @@ if (item?.Group) {
 
 {/* 👇 单独写产品汇总信息 */}
 <p style={{ marginTop: 10 }}>
-  Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b>{/* — GST: <b>${gstAmount.toFixed(2)}</b> — Total incl. GST: <b>${totalWithGST.toFixed(2)}*/}</b>
+  Total Items: <b>{totalQty}</b> — Total Amount: <b>${totalAmount.toFixed(2)}</b>{/* — GST: <b>${gstAmount.toFixed(2)}</b> — Total incl. GST: <b>${totalWithGST.toFixed(2)}</b>*/}
 </p>
 
 
