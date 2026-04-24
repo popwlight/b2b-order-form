@@ -106,10 +106,10 @@ function App() {
   
 
 const searchParams = new URLSearchParams(window.location.search);
-const initialSheet = searchParams.get("sheet") || "Core Products";
+const initialSheet = searchParams.get("sheet") || "Spring 2026 (SW1-26)";
 const [sheetName, setSheetName] = useState(initialSheet);
 
-const sheetOptions = ["Core Products"]; // 替换为你实际的 sheet 名字列表
+const sheetOptions = ["Spring 2026 (SW1-26)"]; // 替换为你实际的 sheet 名字列表
 
   const [data, setData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +164,7 @@ useEffect(() => {
           if (!globalData.some(g => g.Style === item.Style && g.Colours === item.Colours && g.Size === item.Size && g.Width === item.Width)) {
             globalData.push(item);
           }
+          globalStyleMap[item.Style] = item;
         }
       });
       setData(rows);
@@ -189,18 +190,18 @@ useEffect(() => {
   // 如果 customerId 为空，就不处理
   if (!customerId || Object.keys(globalStyleMap).length === 0) return;
 
-  // 重新构建 styleMap（从 globalStyleMap 拉出符合当前 sheet 的产品）
+  // ✅ 修复更新 styleMap 的逻辑，改为使用 globalStyleMap[styleCode]
   const updatedMap: Record<string, any> = {};
   Object.keys(globalStyleMap).forEach(styleCode => {
-    const item = originalItem;
+    const item = globalStyleMap[styleCode];
     if (item?.Group && item.Group !== undefined) {
       updatedMap[styleCode] = { ...item };
     }
   });
 
-  // 应用折扣逻辑
-  applyWholesaleDiscountIfNeeded(updatedMap, customerId);
-  setStyleMap(rows);
+  // ✅ 应用折扣逻辑
+  applyWholesaleDiscountIfNeeded(Object.values(updatedMap), customerId);
+  setStyleMap(updatedMap); // ❗确保用 updatedMap 而不是 rows
 }, [customerId]);
 
 
@@ -231,26 +232,70 @@ const csvContent = generateGroupedCSV(quantities);
 //  });
  // htmlTable += "</table>";
 
-  let htmlTable = "";
+let htmlTable = "";
 const grouped: Record<string, { rows: string[], subtotal: number, qty: number }> = {};
+
 Object.entries(quantities).forEach(([sku, qty]) => {
   if (qty > 0) {
     const item = findItemBySKU(sku);
     const group = item?.Group || "Uncategorized";
-    const price = parseFloat(item?.Wholesale) || 0;
-    if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
-    grouped[group].rows.push(`<tr><td>${sku}</td><td>${qty}</td></tr>`);
+    const discounted = styleMap[item?.Style]?.Wholesale;
+    const price = parseFloat(discounted ?? item?.Wholesale ?? "0");
+
+    // ✅ 从 SKU 解析出对应的 size / width / colour
+    let descText = item?.Desc || "";
+    let colour = "";
+    let size = "";
+    let width = "";
+
+    if (isShoe(item.Style)) {
+      // 鞋类：Style(前缀) + 2位Width + Colour + Size
+      const styleLen = item.Style.length;
+      width = sku.substring(styleLen, styleLen + 2).replace(/^0/, ""); // 去掉前导0
+      const rest = sku.substring(styleLen + 2);
+      size = rest.slice(-3);
+      colour = rest.slice(0, -3);
+    } else {
+      // 非鞋类：Style + Colour + Size
+      const styleLen = item.Style.length;
+      const rest = sku.substring(styleLen);
+      size = rest.slice(-3);
+      colour = rest.slice(0, -3);
+    }
+
+    // 转换 size（数字回到原来的 6, 6.5, M 等）
+const displaySize = (() => {
+  if (size === "ONE") return "ONE";
+
+  if (/^\d+$/.test(size)) {
+    // 鞋码：3位数字，还原为 6, 6.5, 10.5 等
+    return (parseInt(size) / 10).toString().replace(/\.0$/, "");
+  }
+
+  // 非数字：去掉前导0
+  return size.replace(/^0+/, "");
+})();
+
+
+    // 拼接最终描述
+    descText += ` ${colour}`;
+    if (displaySize) descText += ` ${displaySize}`;
+    if (width) descText += ` ${width}`;
+
+    if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0, qty: 0 };
+    grouped[group].rows.push(
+      `<tr><td>${sku}</td><td>${descText}</td><td>${qty}</td></tr>`
+    );
     grouped[group].subtotal += price * qty;
-    grouped[group].qty = (grouped[group].qty || 0) + qty;
+    grouped[group].qty += qty;
   }
 });
 
-
 Object.entries(grouped).forEach(([group, { rows, subtotal }]) => {
   htmlTable += `<h4>${group}</h4>`;
-  htmlTable += "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Qty</th></tr>";
+  htmlTable += "<table border='1' cellpadding='6' cellspacing='0'><tr><th>SKU</th><th>Description</th><th>Qty</th></tr>";
   htmlTable += rows.join("");
-  htmlTable += `<tr><td><b>Subtotal:</b>$${subtotal.toFixed(2)}</td><td><b>${grouped[group].qty}</b></td></tr>`;
+  htmlTable += `<tr><td colspan="2"><b>Subtotal:</b> $${subtotal.toFixed(2)}</td><td><b>${grouped[group].qty}</b></td></tr>`;
   htmlTable += "</table><br/>";
 });
 
@@ -276,7 +321,7 @@ const summaryHtml = `
 
   const htmlContent = `
   <div style="display: flex; align-items: center; margin-bottom: 20px;">
-    <img src="https://www.capezio.au/static/version1745830218/frontend/Aws/capezio/en_AU/images/logo.svg" alt="Logo" style="height: 20.64px; margin-right: 20px;" />
+    <img src="https://www.capezio.au/cdn/shop/files/logo.svg?v=1760456499&width=160" alt="Logo" style="height: 20.64px; margin-right: 20px;" />
     <h3 style="margin: 0;">Order Summary</h3>
   </div>
   ${summaryHtml}
@@ -390,7 +435,8 @@ Object.entries(quantities).forEach(([sku, qty]) => {
   if (qty > 0) {
     const item = findItemBySKU(sku);
     const group = item?.Group || "Uncategorized";
-    const price = parseFloat(item?.Wholesale) || 0;
+    const discounted = styleMap[item?.Style]?.Wholesale;
+    const price = parseFloat(discounted ?? item?.Wholesale ?? "0");
     if (!grouped[group]) grouped[group] = { rows: [], subtotal: 0 };
     grouped[group].rows.push(`${sku},${qty}`);
     grouped[group].subtotal += price * qty;
@@ -428,7 +474,9 @@ Object.entries(quantities).forEach(([sku, qty]) => {
   const totalQty = Object.values(quantities).reduce((sum, v) => sum + v, 0);
   const totalAmount = Object.entries(quantities).reduce((sum, [sku, qty]) => {
   const item = findItemBySKU(sku);
-  return sum + ((parseFloat(item?.Wholesale) || 0) * qty);
+  const discounted = styleMap[item?.Style]?.Wholesale;
+  const price = parseFloat(discounted ?? item?.Wholesale ?? "0");
+  return sum + price * qty;
 }, 0);
   const gstAmount = totalAmount * GST_RATE;
   const totalWithGST = totalAmount + gstAmount;
@@ -482,14 +530,14 @@ if (item?.Group) {
     <div style={{ padding: 20 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
       <img
-        src="https://www.capezio.au/static/version1745830218/frontend/Aws/capezio/en_AU/images/logo.svg"
+        src="https://www.capezio.au/cdn/shop/files/logo.svg?v=1760456499&width=160"
         alt="Logo"
         style={{ height: 30.645, marginRight: 10 }}
       />
-      <h1 style={{ fontSize: 20 }}>Capezio Order Form</h1>
+      <h1 style={{ fontSize: 20 }}>Capezio Order Form- Swing 1 2026</h1>
     </div>
       <div style={{ marginBottom: 10 }}>
-  <label><b>Choose Secion:</b> </label>
+  <label><b>Choose Section:</b> </label>
   <select
     value={sheetName}
     onChange={(e) => {
@@ -632,7 +680,8 @@ if (item?.Group) {
           const sku = generateSKU(item, width, colour, size);
           const count = quantities[sku] || 0;
           qty += count;
-          amount += count * parseFloat(item.Wholesale || "0");
+          const discounted = styleMap[item.Style]?.Wholesale;
+amount += count * parseFloat((discounted ?? item.Wholesale) || "0");
         });
       });
     });
@@ -650,7 +699,14 @@ if (item?.Group) {
 
               return (
                 <div key={item.Style} style={{ marginBottom: 20 }}>
-                  <b>{item.Collection} - {item.Desc} (${item.RRP} / ${item.Wholesale})</b>
+                <b>
+  {item.Collection}  {item.Style} - {item.Desc} (
+  ${item.RRP} / ${(() => {
+    const discounted = styleMap[item.Style]?.Wholesale;
+    return discounted ?? item.Wholesale;
+  })()}
+  )
+</b>
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ borderCollapse: "collapse", marginTop: 5 }}>
                       <thead>
