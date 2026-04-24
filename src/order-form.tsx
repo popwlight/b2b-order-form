@@ -534,7 +534,7 @@ if (item?.Group) {
         alt="Logo"
         style={{ height: 30.645, marginRight: 10 }}
       />
-      <h1 style={{ fontSize: 20 }}>Capezio Order Form- Swing 1 2026</h1>
+      <h1 style={{ fontSize: 20 }}>Capezio Order Form</h1>
     </div>
       <div style={{ marginBottom: 10 }}>
   <label><b>Choose Section:</b> </label>
