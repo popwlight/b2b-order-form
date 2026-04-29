@@ -109,7 +109,7 @@ const searchParams = new URLSearchParams(window.location.search);
 const initialSheet = searchParams.get("sheet") || "2026 Salvatore Capezio Collection ASIA- USD";
 const [sheetName, setSheetName] = useState(initialSheet);
 
-const sheetOptions = ["2026 Salvatore Capezio Collection ASIA- USD"]; // 替换为你实际的 sheet 名字列表
+const sheetOptions = ["2026 Salvatore Capezio Collection ASIA- USD","SW2-26 ASIA USD"]; // 替换为你实际的 sheet 名字列表
 
   const [data, setData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
