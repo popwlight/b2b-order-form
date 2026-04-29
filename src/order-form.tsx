@@ -314,9 +314,7 @@ const summaryHtml = `
   <p><b>Customer Name:</b> ${customerName || "N/A"}</p>
   <p><b>Order Time:</b> ${orderTime}</p>
   <p><b>Total Quantity:</b> ${totalQty}</p>
-  <p><b>Total Amount (ex. GST):</b> $${totalAmount.toFixed(2)}</p>
-  <p><b>GST (10%):</b> $${gstAmount.toFixed(2)}</p>
-  <p><b>Total Amount (incl. GST):</b> $${totalWithGST.toFixed(2)}</p>
+  <p><b>Total Amount:</b> $${totalAmount.toFixed(2)}</p>
 `;
 
   const htmlContent = `
